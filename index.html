@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deutschlify – Nemis tilini o‘rganing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#14213d;--muted:#5b6478;--line:#d9d6cc;--gold:#f2b705;--red:#c8372d;--ok:#1f8a4c}
+@media (prefers-color-scheme:dark){:root{--bg:#10151f;--card:#1a2233;--ink:#f1efe8;--muted:#9aa3b5;--line:#2c3650}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Bricolage Grotesque',system-ui,sans-serif;line-height:1.55}
+.stripe{height:8px;background:linear-gradient(#111 0 33%,var(--red) 33% 66%,var(--gold) 66%)}
+header{max-width:760px;margin:0 auto;padding:28px 20px 8px}
+h1{font-size:2.4rem;font-weight:800;margin:0;letter-spacing:-.02em}
+header p{margin:4px 0 0;color:var(--muted)}
+nav{max-width:760px;margin:16px auto 0;padding:0 20px;display:flex;gap:8px;flex-wrap:wrap}
+nav button{flex:1;min-width:110px;padding:12px;border:2px solid var(--ink);background:transparent;color:var(--ink);font:inherit;font-weight:600;border-radius:10px;cursor:pointer}
+nav button.on{background:var(--ink);color:var(--bg)}
+main{max-width:760px;margin:0 auto;padding:20px}
+section{display:none}section.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px}
+.de{font-size:1.2rem;line-height:1.7}
+.tr{color:var(--muted);margin-top:8px}
+button.b,select,textarea,input[type=text]{font:inherit;color:var(--ink)}
+button.b{background:var(--gold);color:#14213d;border:0;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer}
+button.b.alt{background:transparent;border:2px solid var(--line);color:var(--ink)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.q{margin-top:16px}.q p{font-weight:600;margin:0 0 8px}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;font:inherit;cursor:pointer}
+.opt.right{border-color:var(--ok);background:rgba(31,138,76,.15)}
+.opt.wrong{border-color:var(--red);background:rgba(200,55,45,.15)}
+textarea,input[type=text],select{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+textarea{min-height:110px;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.row>*{flex:0 0 auto}.row select{flex:1}
+.res{margin-top:12px;min-height:1.5em}
+.good{color:var(--ok);font-weight:600}.bad{color:var(--red);font-weight:600}
+small{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="stripe"></div>
+<header>
+  <h1>Deutschlify</h1>
+  <p>Nemis tilini o‘qing, tinglang va tarjima qiling.</p>
+</header>
+<nav id="tabs">
+  <button data-t="lesen" class="on">📖 Lesen</button>
+  <button data-t="horen">🎧 Hören</button>
+  <button data-t="ai">🤖 AI Tarjimon</button>
+</nav>
+<main>
+
+<!-- LESEN -->
+<section id="lesen" class="on"></section>
+
+<!-- HÖREN -->
+<section id="horen">
+  <div class="card">
+    <p><b>Tinglang va eshitganingizni yozing.</b></p>
+    <div class="row">
+      <button class="b" id="play">▶ Tinglash</button>
+      <button class="b alt" id="slow">🐢 Sekin</button>
+      <button class="b alt" id="next">Keyingi gap</button>
+    </div>
+    <p class="tr" id="hcount"></p>
+    <input type="text" id="dict" placeholder="Nemischa yozing..." autocomplete="off" autocapitalize="off">
+    <div class="row"><button class="b" id="check">Tekshirish</button><button class="b alt" id="hint">Tarjimasi</button></div>
+    <div class="res" id="hres"></div>
+    <small id="novoice"></small>
+  </div>
+</section>
+
+<!-- AI TRANSLATOR -->
+<section id="ai">
+  <div class="card">
+    <textarea id="src" placeholder="Matnni kiriting..."></textarea>
+    <div class="row">
+      <select id="pair" aria-label="Til juftligi">
+        <option value="de|uz">Nemischa → O‘zbekcha</option>
+        <option value="uz|de">O‘zbekcha → Nemischa</option>
+        <option value="de|en">Nemischa → Inglizcha</option>
+        <option value="en|de">Inglizcha → Nemischa</option>
+        <option value="de|ru">Nemischa → Ruscha</option>
+        <option value="ru|de">Ruscha → Nemischa</option>
+      </select>
+      <button class="b" id="go">Tarjima qilish</button>
+    </div>
+    <div class="card" style="margin:14px 0 0"><div id="out" class="de">Tarjima shu yerda chiqadi.</div>
+      <div class="row"><button class="b alt" id="spk">🔊 Nemischa o‘qish</button><button class="b alt" id="cp">Nusxa olish</button></div>
+    </div>
+  </div>
+</section>
+
+</main>
+<script>
+/* ---------- Tabs ---------- */
+const tabs=document.querySelectorAll('#tabs button');
+tabs.forEach(b=>b.onclick=()=>{
+  tabs.forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.t));
+});
+
+/* ---------- Speech helper ---------- */
+function speak(text,rate=1){
+  if(!('speechSynthesis' in window)){document.getElementById('novoice').textContent='Brauzeringiz ovozni qo‘llamaydi.';return}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='de-DE';u.rate=rate;
+  const v=speechSynthesis.getVoices().find(v=>v.lang&&v.lang.startsWith('de'));
+  if(v)u.voice=v;
+  speechSynthesis.speak(u);
+}
+
+/* ---------- LESEN ---------- */
+const texts=[
+ {title:'Anna stellt sich vor',de:'Hallo! Ich heiße Anna. Ich komme aus Berlin. Ich bin 25 Jahre alt. Ich lerne Spanisch und Englisch. Am Wochenende spiele ich Fußball.',
+  uz:'Salom! Mening ismim Anna. Men Berlindanman. Men 25 yoshdaman. Men ispan va ingliz tillarini o‘rganaman. Dam olish kunlari futbol o‘ynayman.',
+  qs:[{q:'Woher kommt Anna?',o:['Berlin','Wien','Zürich'],a:0},{q:'Wie alt ist Anna?',o:['22','25','30'],a:1},{q:'Was macht Anna am Wochenende?',o:['Sie lernt','Sie spielt Fußball','Sie arbeitet'],a:1}]},
+ {title:'Meine Familie',de:'Das ist meine Familie. Mein Vater heißt Karl und meine Mutter heißt Eva. Ich habe eine Schwester. Sie heißt Lisa. Wir wohnen in einem Haus in München.',
+  uz:'Bu mening oilam. Dadamning ismi Karl, onamning ismi Eva. Mening bitta singlim bor. Uning ismi Lisa. Biz Myunxendagi uyda yashaymiz.',
+  qs:[{q:'Wie heißt die Mutter?',o:['Lisa','Eva','Anna'],a:1},{q:'Wo wohnt die Familie?',o:['In München','In Berlin','In Hamburg'],a:0}]},
+ {title:'Im Café',de:'Heute gehe ich ins Café. Ich bestelle einen Kaffee und ein Stück Kuchen. Der Kaffee kostet drei Euro. Der Kuchen kostet vier Euro. Ich bezahle sieben Euro.',
+  uz:'Bugun men kafega boraman. Men qahva va bir bo‘lak tort buyurtma qilaman. Qahva uch yevro. Tort to‘rt yevro. Men yetti yevro to‘layman.',
+  qs:[{q:'Was kostet der Kaffee?',o:['3 Euro','4 Euro','7 Euro'],a:0},{q:'Wie viel bezahlt die Person insgesamt?',o:['5 Euro','7 Euro','9 Euro'],a:1}]}
+];
+const lesen=document.getElementById('lesen');
+texts.forEach((t,i)=>{
+  const c=document.createElement('div');c.className='card';
+  c.innerHTML=`<h3 style="margin-top:0">${t.title}</h3><div class="de">${t.de}</div>
+  <div class="row"><button class="b alt" data-a="spk">🔊 Tinglash</button><button class="b alt" data-a="tr">Tarjimasi</button></div>
+  <div class="tr" hidden>${t.uz}</div>`;
+  const tr=c.querySelector('.tr');
+  c.querySelector('[data-a=spk]').onclick=()=>speak(t.de,.9);
+  c.querySelector('[data-a=tr]').onclick=()=>tr.hidden=!tr.hidden;
+  t.qs.forEach(q=>{
+    const d=document.createElement('div');d.className='q';
+    d.innerHTML=`<p>${q.q}</p>`;
+    q.o.forEach((o,k)=>{
+      const b=document.createElement('button');b.className='opt';b.textContent=o;
+      b.onclick=()=>{
+        d.querySelectorAll('.opt').forEach((x,j)=>{x.disabled=true;if(j===q.a)x.classList.add('right')});
+        if(k!==q.a)b.classList.add('wrong');
+      };
+      d.appendChild(b);
+    });
+    c.appendChild(d);
+  });
+  lesen.appendChild(c);
+});
+
+/* ---------- HÖREN ---------- */
+const sents=[
+ ['Guten Morgen, wie geht es Ihnen?','Xayrli tong, ahvollaringiz qanday?'],
+ ['Ich möchte einen Kaffee, bitte.','Menga bitta qahva bering, iltimos.'],
+ ['Wo ist der Bahnhof?','Vokzal qayerda?'],
+ ['Ich wohne seit zwei Jahren in Hamburg.','Men ikki yildan beri Gamburgda yashayman.'],
+ ['Das Wetter ist heute sehr schön.','Bugun ob-havo juda yaxshi.']
+];
+let si=0;
+const $=id=>document.getElementById(id);
+const norm=s=>s.toLowerCase().replace(/[.,!?;:]/g,'').replace(/\s+/g,' ').trim();
+function showS(){$('hcount').textContent=`Gap ${si+1} / ${sents.length}`;$('dict').value='';$('hres').textContent=''}
+$('play').onclick=()=>speak(sents[si][0],1);
+$('slow').onclick=()=>speak(sents[si][0],.55);
+$('next').onclick=()=>{si=(si+1)%sents.length;showS()};
+$('hint').onclick=()=>$('hres').textContent='🇺🇿 '+sents[si][1];
+$('check').onclick=()=>{
+  const ok=norm($('dict').value)===norm(sents[si][0]);
+  $('hres').innerHTML=ok?'<span class="good">✔ To‘g‘ri!</span>':`<span class="bad">✘ Noto‘g‘ri.</span> To‘g‘risi: <b>${sents[si][0]}</b>`;
+};
+$('dict').addEventListener('keydown',e=>{if(e.key==='Enter')$('check').click()});
+showS();
+
+/* ---------- AI TRANSLATOR (MyMemory, kalitsiz) ---------- */
+$('go').onclick=async()=>{
+  const q=$('src').value.trim();if(!q)return;
+  $('out').textContent='Tarjima qilinmoqda...';
+  try{
+    const r=await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(q)+'&langpair='+$('pair').value);
+    const d=await r.json();
+    $('out').textContent=d.responseData.translatedText||'Tarjima topilmadi.';
+  }catch(e){$('out').textContent='Xatolik: internetni tekshiring va qayta urining.'}
+};
+$('spk').onclick=()=>{
+  const lang=$('pair').value.split('|')[1];
+  const text=lang==='de'?$('out').textContent:$('src').value;
+  speak(text,.9);
+};
+$('cp').onclick=()=>navigator.clipboard&&navigator.clipboard.writeText($('out').textContent);
+if('speechSynthesis' in window)speechSynthesis.onvoiceschanged=()=>{};
+</script>
+</body>
+</html>
