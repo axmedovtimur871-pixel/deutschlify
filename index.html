@@ -38,6 +38,16 @@ textarea{min-height:110px;resize:vertical}
 .res{margin-top:12px;min-height:1.5em}
 .good{color:var(--ok);font-weight:600}.bad{color:var(--red);font-weight:600}
 small{color:var(--muted)}
+body{padding-bottom:100px}
+.page{display:none}.page.on{display:block}
+#bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-radius:22px 22px 0 0;box-shadow:0 -2px 14px rgba(0,0,0,.1);display:flex;justify-content:space-around;padding:12px 6px calc(10px + env(safe-area-inset-bottom))}
+#bar button{background:none;border:0;color:var(--muted);font:inherit;font-size:.78rem;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1;padding:4px 0}
+#bar svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#bar button.on{color:#e8793a}
+.chat{display:flex;flex-direction:column;gap:8px;min-height:220px;max-height:50vh;overflow-y:auto;margin-bottom:12px}
+.msg{padding:10px 14px;border-radius:14px;max-width:85%}
+.msg.me{align-self:flex-end;background:var(--gold);color:#14213d}
+.msg.bot{align-self:flex-start;background:var(--bg);border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -46,6 +56,7 @@ small{color:var(--muted)}
   <h1>Deutschlify</h1>
   <p>Nemis tilini o‘qing, tinglang va tarjima qiling.</p>
 </header>
+<div id="home" class="page on">
 <nav id="tabs">
   <button data-t="lesen" class="on">📖 Lesen</button>
   <button data-t="horen">🎧 Hören</button>
@@ -95,12 +106,47 @@ small{color:var(--muted)}
 </section>
 
 </main>
+</div>
+
+<div class="page" id="p-teacher"><main>
+  <div class="card"><h3 style="margin-top:0">🤖 AI Lehrer(in)</h3>
+    <div class="chat" id="chat"><div class="msg bot">Hallo! Men sizning o‘qituvchingizman. O‘zbekcha gap yozing, men nemischasini aytaman.</div></div>
+    <div class="row"><input type="text" id="cin" placeholder="Xabar yozing..." style="flex:1" autocomplete="off"><button class="b" id="csend">Yuborish</button></div>
+  </div>
+</main></div>
+
+<div class="page" id="p-sprechen"><main>
+  <div class="card"><h3 style="margin-top:0">🎤 Sprechen</h3>
+    <div class="de" id="pde"></div><div class="tr" id="puz"></div>
+    <div class="row"><button class="b alt" id="pplay">🔊 Tinglash</button><button class="b" id="pmic">🎤 Gapirish</button><button class="b alt" id="pnext">Keyingi</button></div>
+    <div class="res" id="pres"></div>
+  </div>
+</main></div>
+
+<div class="page" id="p-mock"><main>
+  <div class="card"><h3 style="margin-top:0">📝 Mock test</h3><div id="mbox"></div></div>
+</main></div>
+
+<div class="page" id="p-profil"><main>
+  <div class="card"><h3 style="margin-top:0">👤 Profil</h3>
+    <input type="text" id="pname" placeholder="Ismingiz" autocomplete="off">
+    <div class="res" id="pstats"></div>
+  </div>
+</main></div>
+
+<div id="bar" role="navigation">
+  <button class="on" data-p="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M9 16h6"/></svg>Bosh sahifa</button>
+  <button data-p="p-teacher"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4l1.8 5.2L17 11l-5.2 1.8L10 18l-1.8-5.2L3 11l5.2-1.8z"/><path d="M18 3v4M16 5h4"/></svg>AI Lehrer(in)</button>
+  <button data-p="p-sprechen"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Sprechen</button>
+  <button data-p="p-mock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 14l2 2 4-4"/></svg>Mock</button>
+  <button data-p="p-profil"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5a6 6 0 0 1 11 0"/></svg>Profil</button>
+</div>
 <script>
 /* ---------- Tabs ---------- */
 const tabs=document.querySelectorAll('#tabs button');
 tabs.forEach(b=>b.onclick=()=>{
   tabs.forEach(x=>x.classList.toggle('on',x===b));
-  document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.t));
+  document.querySelectorAll('#home section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.t));
 });
 
 /* ---------- Speech helper ---------- */
@@ -191,6 +237,96 @@ $('spk').onclick=()=>{
 };
 $('cp').onclick=()=>navigator.clipboard&&navigator.clipboard.writeText($('out').textContent);
 if('speechSynthesis' in window)speechSynthesis.onvoiceschanged=()=>{};
+
+/* ---------- Pastki panel ---------- */
+const store={get(k,d){try{const v=localStorage.getItem('dl_'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('dl_'+k,JSON.stringify(v))}catch(e){}}};
+const bar=document.querySelectorAll('#bar button');
+bar.forEach(b=>b.onclick=()=>{
+  bar.forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id===b.dataset.p||(b.dataset.p==='home'&&p.id==='home')));
+  if(b.dataset.p==='p-profil')stats();
+  scrollTo(0,0);
+});
+
+/* ---------- AI Lehrer(in) ---------- */
+const API_URL=''; // Backend manzilingiz (POST {message} -> {reply}). Bo‘sh bo‘lsa oddiy tarjima ishlaydi.
+function addMsg(t,c){const d=document.createElement('div');d.className='msg '+c;d.textContent=t;$('chat').appendChild(d);$('chat').scrollTop=1e9;return d}
+async function askTeacher(text){
+  if(API_URL){const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text})});return (await r.json()).reply}
+  const r=await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair=uz|de');
+  const d=await r.json();return 'Auf Deutsch: '+d.responseData.translatedText;
+}
+$('csend').onclick=async()=>{
+  const t=$('cin').value.trim();if(!t)return;
+  $('cin').value='';addMsg(t,'me');const w=addMsg('...','bot');
+  try{w.textContent=await askTeacher(t)}catch(e){w.textContent='Xatolik, qayta urinib ko‘ring.'}
+};
+$('cin').addEventListener('keydown',e=>{if(e.key==='Enter')$('csend').click()});
+
+/* ---------- Sprechen ---------- */
+const phr=[['Ich heiße Anna.','Mening ismim Anna.'],['Wie geht es dir?','Ahvoling qalay?'],['Ich komme aus Usbekistan.','Men O‘zbekistondanman.'],['Ich lerne Deutsch.','Men nemis tilini o‘rganaman.'],['Können Sie mir helfen?','Menga yordam bera olasizmi?']];
+let pi=0;
+function showP(){$('pde').textContent=phr[pi][0];$('puz').textContent=phr[pi][1];$('pres').textContent='';$('pres').className='res'}
+$('pplay').onclick=()=>speak(phr[pi][0],.9);
+$('pnext').onclick=()=>{pi=(pi+1)%phr.length;showP()};
+$('pmic').onclick=()=>{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){$('pres').textContent='Brauzeringiz mikrofonni tanimaydi. Chrome yoki Edge’dan foydalaning.';return}
+  const r=new SR();r.lang='de-DE';
+  r.onresult=e=>{
+    const heard=e.results[0][0].transcript;
+    const a=norm(heard).split(' '),b=norm(phr[pi][0]).split(' ');
+    const pct=Math.round(b.filter(w=>a.includes(w)).length/b.length*100);
+    $('pres').textContent='Eshitildi: '+heard+' (aniqlik '+pct+'%)';
+    $('pres').className='res '+(pct>=80?'good':'bad');
+    const s=store.get('spk',{n:0,ok:0});s.n++;if(pct>=80)s.ok++;store.set('spk',s);
+  };
+  r.onerror=()=>{$('pres').textContent='Mikrofonga ruxsat bering va qayta urining.'};
+  r.start();$('pres').className='res';$('pres').textContent='Tinglayapman...';
+};
+showP();
+
+/* ---------- Mock test ---------- */
+const mq=[
+ ['Ich ___ Anna.',['bin','heiße','habe'],1],
+ ['Er ___ aus Berlin.',['komme','kommt','kommst'],1],
+ ['Wir ___ Deutsch.',['lernen','lernt','lerne'],0],
+ ['___ Mutter ist nett.',['Der','Die','Das'],1],
+ ['Ich habe ___ Bruder.',['eine','einen','ein'],1],
+ ['Danke! – ___',['Bitte','Hallo','Tschüss'],0]
+];
+let mi=0,ms=0;
+function mockShow(){
+  const box=$('mbox');box.innerHTML='';
+  if(mi>=mq.length){
+    store.set('best',Math.max(store.get('best',0),ms));
+    const h=document.createElement('h3');h.textContent='Natija: '+ms+' / '+mq.length;
+    const b=document.createElement('button');b.className='b';b.textContent='Qayta boshlash';
+    b.onclick=()=>{mi=0;ms=0;mockShow()};
+    box.append(h,b);return;
+  }
+  const [q,o,a]=mq[mi];
+  const p=document.createElement('p');p.className='de';p.textContent=(mi+1)+'/'+mq.length+'  '+q;box.appendChild(p);
+  o.forEach((t,k)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      box.querySelectorAll('.opt').forEach((x,j)=>{x.disabled=true;if(j===a)x.classList.add('right')});
+      if(k===a)ms++;else b.classList.add('wrong');
+      setTimeout(()=>{mi++;mockShow()},900);
+    };
+    box.appendChild(b);
+  });
+}
+mockShow();
+
+/* ---------- Profil ---------- */
+$('pname').value=store.get('name','');
+$('pname').oninput=e=>store.set('name',e.target.value);
+function stats(){
+  const s=store.get('spk',{n:0,ok:0});
+  $('pstats').innerHTML='Mock: eng yaxshi natija '+store.get('best',0)+' / '+mq.length+'<br>Sprechen: '+s.ok+' / '+s.n+' to‘g‘ri';
+}
+stats();
 </script>
 </body>
 </html>
