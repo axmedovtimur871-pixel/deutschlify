@@ -110,6 +110,10 @@ details{margin:10px 0}details summary{cursor:pointer;font-weight:600;padding:8px
 .fcr small{color:var(--muted);display:block}.fcr div{font-size:1.02rem}
 .prog{margin-left:auto;color:var(--muted)}
 button:disabled{opacity:.45;cursor:default}
+
+.irow{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--card);margin:8px 0}
+.icol{flex:1;min-width:0;display:grid;gap:6px}
+.irow input[type=checkbox]{width:22px;height:22px;margin-top:10px;flex:none}
 </style>
 </head>
 <body>
@@ -198,6 +202,7 @@ button:disabled{opacity:.45;cursor:default}
 
 <div class="page" id="p-level"><main><div id="lv"></div></main></div>
 
+<div class="page" id="p-admin"><main><div id="adm"></div></main></div>
 <div class="page" id="p-cards"><main><div id="fc"></div></main></div>
 
 <div id="bar" role="navigation">
@@ -413,10 +418,14 @@ const LEVELS={
 };
 function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
 function openPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id===id));scrollTo(0,0)}
-Object.keys(LEVELS).forEach(code=>{
-  const b=el('button','lvl');b.append(el('b',null,code),el('span',null,LEVELS[code].name));
-  b.onclick=()=>showLevel(code);$('levels').appendChild(b);
-});
+function renderLevels(){
+  $('levels').innerHTML='';
+  Object.keys(LEVELS).forEach(code=>{
+    const b=el('button','lvl');b.append(el('b',null,code),el('span',null,LEVELS[code].name));
+    b.onclick=()=>showLevel(code);$('levels').appendChild(b);
+  });
+}
+renderLevels();
 function showLevel(code){
   const L=LEVELS[code],lv=$('lv');lv.innerHTML='';
   const back=el('button','b alt','← Orqaga');back.onclick=()=>openPage('home');
@@ -523,7 +532,7 @@ function vList(){
       fsave();vList();
     }}),h('button',{class:'b alt',text:'Bekor',onclick:()=>{form.hidden=true}})),box);
   r.append(h('div',{class:'row',style:'justify-content:space-between'},back('Orqaga',()=>openPage('home')),h('button',{class:'b',text:'+ Yangi to‘plam',onclick:()=>{form.hidden=false;$('cn').focus()}})),
-    h('h3',{text:'Mening flashcardlarim',style:'margin:16px 0 8px'}),form,s,list);
+    h('button',{class:'b alt',text:'Import: rasm, PDF yoki matn',onclick:vImport,style:'width:100%;margin-top:12px'}),h('h3',{text:'Mening flashcardlarim',style:'margin:16px 0 8px'}),form,s,list);
   const fill=()=>{
     const q=s.value.trim().toLowerCase();list.innerHTML='';
     if(q){
@@ -668,7 +677,307 @@ function vStudy(cid){
   draw();
 }
 $('fcgo').onclick=()=>{vList();openPage('p-cards')};
+
+/* ---------- Import: rasm, PDF, matn (2-bosqich) ----------
+   Fayllar qurilmada qayta ishlanadi (Tesseract.js, pdf.js), serverga yuklanmaydi. */
+/*IMPORT_START*/
+const STOP=new Set(('der die das den dem des ein eine einen einem einer eines und oder aber nicht kein keine keinen keinem ich du er sie es wir ihr mich dich ihn uns euch ihnen ihm mein meine meinen meinem meiner dein deine sein seine seinen unser unsere ist sind war waren bin bist seid habe hast hat haben hatte hatten wird werden wurde wurden kann kannst können konnte muss musst müssen musste soll sollen will willst wollen mag mögen darf dürfen auch noch nur sehr schon immer wieder dann denn doch mal hier dort da dies diese diesen diesem dieser dieses jetzt heute man mit von zu zur zum auf aus bei nach für über unter vor durch gegen ohne um bis seit als wie was wer wo wann warum weil dass wenn ob während also so ganz viel viele mehr wenig alle alles jede jeder jedes nichts etwas gibt geht steht ja nein bitte danke hallo').split(' '));
+const TOK=/[A-Za-zÄÖÜäöüß]+(?:-[A-Za-zÄÖÜäöüß]+)*/g;
+function extractWords(text){
+  const out=new Map();
+  const add=it=>{const k=nk(it.de);if(!k)return;if(out.has(k)){out.get(k).count++;return}out.set(k,{...it,count:1})};
+  const lines=(text||'').replace(/\r/g,'').split('\n').map(l=>l.trim()).filter(l=>l&&!/^\d{1,4}$/.test(l)&&!/^(seite|page|s\.)\s*\d+$/i.test(l)&&!/https?:\/\//i.test(l));
+  const rest=[];
+  for(const l of lines){
+    const p=parseLine(l);
+    if(p&&p.ok&&p.de.split(/\s+/).length<=4&&p.uz.split(/\s+/).length<=8&&!/[.!?]$/.test(p.de)){
+      add({de:p.de,uz:p.uz,kind:'pair',sel:true,note:'tarjima matndan olindi'});continue;
+    }
+    const a=l.match(/^(der|die|das)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß]+)\s*(?:[,;(].*)?$/);
+    if(a){add({de:a[1]+' '+a[2],uz:'',kind:'noun-art',sel:true,note:'artikl ro‘yxatdan olindi'});continue}
+    rest.push(l);
+  }
+  const mid=new Map(),start=new Map(),low=new Map();
+  const inc=(m,k)=>m.set(k,(m.get(k)||0)+1);
+  rest.join('\n').split(/(?<=[.!?:])\s+|\n+/).forEach(sn=>{
+    (sn.match(TOK)||[]).forEach((w,i)=>{
+      const lw=w.toLowerCase();if(w.length<3||STOP.has(lw))return;
+      if(/^[A-ZÄÖÜ]/.test(w))inc(i>0?mid:start,w);else inc(low,lw);
+    });
+  });
+  mid.forEach((c,w)=>{for(let n=0;n<c;n++)add({de:w,uz:'',kind:'noun',sel:true,note:'artikl noma’lum'})});
+  start.forEach((c,w)=>{if(w.length>=4&&!low.has(w.toLowerCase()))add({de:w,uz:'',kind:'word',sel:false,note:'gap boshida, aniq emas'})});
+  low.forEach((c,w)=>{if(w.length>=4)add({de:w,uz:'',kind:/(en|ern|eln)$/.test(w)?'verb':'word',sel:false,note:/(en|ern|eln)$/.test(w)?'fe’l bo‘lishi mumkin, aniq emas':'shakli aniq emas'})});
+  const ord={pair:0,'noun-art':1,noun:2,verb:3,word:4};
+  return [...out.values()].sort((a,b)=>ord[a.kind]-ord[b.kind]||b.count-a.count).slice(0,150);
+}
+function checkFile(f){
+  const t=f.type||'',n=(f.name||'').toLowerCase();
+  const pdf=t==='application/pdf'||n.endsWith('.pdf');
+  const img=['image/jpeg','image/png','image/webp'].includes(t);
+  if(/heic|heif/.test(t)||/\.(heic|heif)$/.test(n))return 'HEIC format qo‘llanmaydi. JPG yoki PNG tanlang.';
+  if(!pdf&&!img)return 'Faqat JPG, PNG, WebP yoki PDF fayl mumkin.';
+  if(pdf&&f.size>15*1024*1024)return 'PDF 15 MB dan katta bo‘lmasin.';
+  if(img&&f.size>10*1024*1024)return 'Rasm 10 MB dan katta bo‘lmasin.';
+  return '';
+}
+/*IMPORT_END*/
+const TESS='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const PDFW='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const MM='https://api.mymemory.translated.net/get?langpair=de|uz&q=';
+const _ls={};
+const loadScript=u=>_ls[u]||(_ls[u]=new Promise((ok,no)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=()=>{delete _ls[u];no(new Error('lib'))};document.head.append(s)}));
+const bare=s=>s.trim().replace(/^(der|die|das)\s+/i,'');
+async function shrink(f){
+  const bm=await createImageBitmap(f),k=Math.min(1,2000/Math.max(bm.width,bm.height));
+  const c=document.createElement('canvas');c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);
+  c.getContext('2d').drawImage(bm,0,0,c.width,c.height);return c;
+}
+async function ocr(cs,prog){
+  await loadScript(TESS);
+  const w=await Tesseract.createWorker('deu',1,{logger:m=>{if(m.status==='recognizing text')prog('OCR: '+Math.round(m.progress*100)+'%')}});
+  try{let t='';for(let i=0;i<cs.length;i++){prog('OCR '+(i+1)+' / '+cs.length);t+=(await w.recognize(cs[i])).data.text+'\n'}return t}
+  finally{await w.terminate()}
+}
+async function pdfText(f,prog){
+  await loadScript(PDFJS);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFW;
+  const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise,n=Math.min(pdf.numPages,30);let t='';
+  for(let p=1;p<=n;p++){prog('PDF sahifa '+p+' / '+n);const c=await(await pdf.getPage(p)).getTextContent();t+=c.items.map(x=>x.str+(x.hasEOL?'\n':' ')).join('')+'\n'}
+  if(t.replace(/\s/g,'').length>=n*30)return t;
+  const m=Math.min(pdf.numPages,8),cs=[];
+  for(let p=1;p<=m;p++){
+    prog('Skanerlangan PDF: sahifa '+p+' / '+m+' tayyorlanmoqda');
+    const pg=await pdf.getPage(p),vp=pg.getViewport({scale:1.8}),cv=document.createElement('canvas');
+    cv.width=vp.width;cv.height=vp.height;await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;cs.push(cv);
+  }
+  return ocr(cs,prog);
+}
+async function aiFetch(w){
+  const cache=store.get('aic',{}),ck=w.toLowerCase();if(cache[ck])return cache[ck];
+  const rs=await fetch(FC_AI_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({word:w})});
+  if(!rs.ok)throw 0;const d=validateAI(await rs.json());if(!d)throw 1;cache[ck]=d;store.set('aic',cache);return d;
+}
+
+function vImport(){
+  const r=R(),box=h('div',{class:'res'}),out=h('div');let items=[];
+  const [ta,tw]=fld('Nemischa matn yoki lug‘at ro‘yxatini joylang','',true);
+  const gal=h('input',{type:'file',accept:'image/jpeg,image/png,image/webp,application/pdf',hidden:''});
+  const cam=h('input',{type:'file',accept:'image/*',capture:'environment',hidden:''});
+  const busy=m=>{box.className='res';box.textContent=m};
+  async function fromFile(f){
+    if(!f)return;const e=checkFile(f);if(e)return note(box,e,1);
+    try{
+      busy('Qayta ishlanmoqda...');
+      const isPdf=f.type==='application/pdf'||/\.pdf$/i.test(f.name);
+      const text=isPdf?await pdfText(f,busy):await ocr([await shrink(f)],busy);
+      ta.value=text.slice(0,50000);run();
+    }catch(err){note(box,'Faylni o‘qib bo‘lmadi. Internetni tekshiring yoki aniqroq rasm/PDF tanlang. Matnni qo‘lda joylashingiz ham mumkin.',1)}
+  }
+  gal.onchange=()=>{fromFile(gal.files[0]);gal.value=''};cam.onchange=()=>{fromFile(cam.files[0]);cam.value=''};
+  r.append(back('Flashcards',vList),h('div',{class:'card',style:'margin-top:14px'},
+    h('h3',{text:'Import',style:'margin-top:0'}),
+    h('p',{class:'tr',text:'Rasm, PDF yoki matndan so‘zlarni ajrating. Hech narsa siz tasdiqlamaguningizcha saqlanmaydi.'}),
+    h('div',{class:'row'},h('button',{class:'b',text:'Rasm yoki PDF',onclick:()=>gal.click()}),h('button',{class:'b alt',text:'Kamera',onclick:()=>cam.click()})),gal,cam,
+    tw,h('button',{class:'b',text:'So‘zlarni ajratish',onclick:run}),box),out);
+  function run(){
+    const text=ta.value.trim();
+    if(!text)return note(box,'Matn kiriting yoki fayl tanlang.',1);
+    if(text.length>50000)return note(box,'Matn juda uzun (50 000 belgigacha).',1);
+    items=extractWords(text);
+    if(!items.length)return note(box,'Mos so‘z topilmadi.',1);
+    note(box,items.length+' ta nomzod topildi. Quyida tekshiring.');review();
+  }
+  function review(){
+    out.innerHTML='';
+    const have=new Set();fd.cols.forEach(c=>c.cards.forEach(k=>have.add(nk(k.de))));
+    const sel=h('select',{id:'imcol','aria-label':'To‘plam'},...fd.cols.map(c=>h('option',{value:c.id,text:c.name})),h('option',{value:'new',text:'+ Yangi to‘plam'}));
+    sel.value=fd.cols.length?fd.cols[0].id:'new';
+    const [ni,nw]=fld('Yangi to‘plam nomi','');ni.id='imnew';nw.hidden=sel.value!=='new';
+    sel.onchange=()=>{nw.hidden=sel.value!=='new'};
+    const cnt=h('div',{class:'res',id:'imc'});
+    const upd=()=>{
+      let n=0;items.forEach(it=>{
+        if(it.del)return;it.dup=have.has(nk(it.deI.value));
+        it.tag.textContent=(it.dup?'Bazada bor · ':'')+it.note+(it.mt?' · mashina tarjimasi':'');
+        if(it.cb.checked)n++;
+      });
+      cnt.className='res';cnt.textContent=n+' ta so‘z qo‘shiladi';
+    };
+    const list=h('div');
+    items.forEach(it=>{
+      it.dup=have.has(nk(it.de));
+      it.cb=h('input',{type:'checkbox','aria-label':'Tanlash'});it.cb.checked=it.sel&&!it.dup;
+      it.deI=h('input',{type:'text','aria-label':'Nemischa',autocomplete:'off'});it.deI.value=it.de;
+      it.uzI=h('input',{type:'text','aria-label':'Tarjima',autocomplete:'off',placeholder:'Tarjima (ixtiyoriy)'});it.uzI.value=it.uz;
+      it.tag=h('small',{class:'tr'});
+      it.el=h('div',{class:'irow'},it.cb,h('div',{class:'icol'},it.deI,it.uzI,it.tag,h('button',{class:'b alt',text:'Olib tashlash',onclick:()=>{it.del=true;it.cb.checked=false;it.el.remove();upd()}})));
+      it.cb.onchange=upd;it.deI.oninput=upd;list.append(it.el);
+    });
+    const chosen=()=>items.filter(i=>!i.del&&i.cb.checked);
+    async function mtFill(){
+      const s=chosen().filter(i=>!i.uzI.value.trim()).slice(0,40);
+      if(!s.length)return note(box,'Tarjima kerak bo‘lgan tanlangan so‘z yo‘q.',1);
+      let ok=0;
+      for(let n=0;n<s.length;n++){
+        busy('Tarjima '+(n+1)+' / '+s.length+'...');
+        try{
+          const d=await(await fetch(MM+encodeURIComponent(bare(s[n].deI.value)))).json(),tx=d.responseData&&d.responseData.translatedText;
+          if(d.quotaFinished||!tx||/^MYMEMORY/i.test(tx))throw 0;
+          s[n].uzI.value=tx;s[n].mt=true;ok++;
+        }catch(e){upd();return note(box,ok+' ta tarjima qo‘shildi, keyin xizmat javob bermadi. Qolganini qo‘lda yozing.',1)}
+      }
+      upd();note(box,ok+' ta mashina tarjimasi qo‘shildi. Albatta tekshiring.');
+    }
+    async function aiAll(){
+      if(!FC_AI_URL)return note(box,'AI hali ulanmagan. index.html dagi FC_AI_URL ga backend manzilini yozing.',1);
+      const s=chosen().filter(i=>!i.extra).slice(0,30);let ok=0;
+      for(let n=0;n<s.length;n++){
+        busy('AI '+(n+1)+' / '+s.length+'...');
+        try{const d=await aiFetch(bare(s[n].deI.value));s[n].extra=d;if(d.uz&&!s[n].uzI.value.trim())s[n].uzI.value=d.uz;ok++}
+        catch(e){return note(box,ok+' ta so‘z AI bilan to‘ldirildi, keyin xatolik. Kiritilganlar saqlanib turibdi.',1)}
+      }
+      note(box,ok+' ta so‘z AI bilan to‘ldirildi. Tekshirib, saqlang.');
+    }
+    function saveAll(){
+      let col;
+      if(sel.value==='new'){
+        const nm=ni.value.trim();if(!nm||nm.length>80)return note(box,'Yangi to‘plam nomini yozing (80 belgigacha).',1);
+        col={id:uid(),name:nm,desc:'',owner:'local',created:now(),updated:now(),cards:[]};
+      }else col=colOf(sel.value);
+      if(!col)return note(box,'To‘plam topilmadi.',1);
+      const inCol=new Set(col.cards.map(k=>nk(k.de)));let add=0,skip=0;
+      chosen().forEach(i=>{
+        let de=i.deI.value.trim();if(!de)return;
+        let art='';const m=de.match(/^(der|die|das)\s+(\S.*)$/i);if(m){art=m[1].toLowerCase();de=m[2]}
+        if(de.length>120||inCol.has(nk(de))){skip++;return}
+        const c=mk(de,i.uzI.value.trim().slice(0,300));
+        if(art){c.article=art;c.type='Nomen';c.src.article='import';c.src.type='import'}
+        if(i.mt&&c.uz)c.src.uz='mt';
+        if(i.extra)Object.keys(i.extra).forEach(k=>{if(k in c&&!c[k]&&i.extra[k]){c[k]=i.extra[k];c.src[k]='ai'}});
+        col.cards.push(c);inCol.add(nk(de));add++;
+      });
+      if(!add)return note(box,'Qo‘shiladigan yangi so‘z yo‘q'+(skip?' ('+skip+' ta takror yoki yaroqsiz).':'.'),1);
+      if(sel.value==='new')fd.cols.unshift(col);
+      col.updated=now();fsave();vCol(col.id);
+    }
+    out.append(h('div',{class:'card'},h('h3',{text:'To‘plamga qo‘shish',style:'margin-top:0'}),
+      h('div',{class:'fld'},h('label',{for:'imcol',text:'To‘plam'}),sel),nw,
+      h('div',{class:'row'},h('button',{class:'b alt',text:'Tarjimani to‘ldirish (bepul, mashina)',onclick:mtFill}),h('button',{class:'b alt',text:'AI bilan to‘ldirish',onclick:aiAll})),
+      cnt,h('button',{class:'b',text:'Flashcardlarga saqlash',onclick:saveAll})),list);
+    upd();
+  }
+}
+
+/* ---------- Admin panel (#admin) ----------
+   O‘zgarishlar shu brauzerda qoralama sifatida saqlanadi. Hammaga ko‘rinishi uchun
+   "content.json yuklab olish" ni bosib, faylni GitHub repository’ga yuklang. */
+/*ADMIN_START*/
+function ytId(s){
+  s=(s||'').trim();if(!s)return '';
+  if(/^([\w\-./%]+|https:\/\/\S+)\.mp4$/i.test(s))return s;
+  const m=s.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/);
+  if(m)return m[1];
+  return /^[\w-]{11}$/.test(s)?s:null;
+}
+function validContent(d){
+  if(!d||typeof d!=='object'||Array.isArray(d))return false;
+  const ks=Object.keys(d);if(!ks.length)return false;
+  return ks.every(k=>{
+    const L=d[k];
+    return L&&typeof L.name==='string'&&typeof L.desc==='string'&&Array.isArray(L.lessons)&&L.lessons.every(ls=>
+      ls&&typeof ls.t==='string'&&ls.t.trim()&&typeof ls.v==='string'&&Array.isArray(ls.q)&&ls.q.every(q=>
+        q&&typeof q.q==='string'&&Array.isArray(q.o)&&q.o.length>=2&&q.o.every(o=>typeof o==='string')&&Number.isInteger(q.a)&&q.a>=0&&q.a<q.o.length));
+  });
+}
+/*ADMIN_END*/
+const DEFAULT_LEVELS=JSON.parse(JSON.stringify(LEVELS));
+function applyContent(d){Object.keys(LEVELS).forEach(k=>delete LEVELS[k]);Object.assign(LEVELS,d);renderLevels()}
+const persistContent=()=>store.set('content',LEVELS);
+(async()=>{
+  const dr=store.get('content',null);
+  if(validContent(dr)){applyContent(dr);return}
+  try{const r=await fetch('content.json',{cache:'no-cache'});if(r.ok){const d=await r.json();if(validContent(d))applyContent(d)}}catch(e){}
+})();
+
+const adm=()=>{const r=$('adm');r.innerHTML='';return r};
+function fld(label,val,area){
+  const i=h(area?'textarea':'input',area?{}:{type:'text',autocomplete:'off'});i.value=val||'';i.id='x'+uid();
+  return [i,h('div',{class:'fld'},h('label',{for:i.id,text:label}),i)];
+}
+function aMain(msg,bad){
+  const r=adm(),box=h('div',{class:'res'});if(msg)note(box,msg,bad);
+  const st=h('div',{class:'card'},h('h3',{text:'Kontent',style:'margin-top:0'}));
+  Object.keys(LEVELS).forEach(code=>{
+    const ls=LEVELS[code].lessons;
+    st.append(rowBtn(code+' – '+LEVELS[code].name,ls.length+' dars · '+ls.filter(x=>x.v).length+' video · '+ls.filter(x=>x.q.length).length+' test',()=>aLevel(code)));
+  });
+  const file=h('input',{type:'file',accept:'.json,application/json',hidden:''});
+  file.onchange=async()=>{
+    try{const d=JSON.parse(await file.files[0].text());if(!validContent(d))throw 0;applyContent(d);persistContent();aMain('Fayl yuklandi.')}
+    catch(e){aMain('Fayl noto‘g‘ri formatda. O‘zgarish kiritilmadi.',1)}
+  };
+  const tools=h('div',{class:'card'},h('h3',{text:'Nashr qilish',style:'margin-top:0'}),
+    h('p',{class:'tr',text:'O‘zgarishlar hozircha faqat shu qurilmada. Hammaga ko‘rinishi uchun faylni yuklab olib, GitHub’dagi repository’ga content.json nomi bilan yuklang.'}),
+    h('div',{class:'row'},
+      h('button',{class:'b',text:'content.json yuklab olish',onclick:()=>{
+        const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(LEVELS,null,2)],{type:'application/json'}));
+        a.download='content.json';document.body.append(a);a.click();a.remove();}}),
+      h('button',{class:'b alt',text:'JSON yuklash',onclick:()=>file.click()}),
+      h('button',{class:'b alt',text:'Qoralamani tozalash',onclick:async()=>{
+        if(!confirm('Shu qurilmadagi barcha admin o‘zgarishlari o‘chiriladi. Davom etasizmi?'))return;
+        try{localStorage.removeItem('dl_content')}catch(e){}
+        applyContent(JSON.parse(JSON.stringify(DEFAULT_LEVELS)));
+        try{const rs=await fetch('content.json',{cache:'no-cache'});if(rs.ok){const d=await rs.json();if(validContent(d))applyContent(d)}}catch(e){}
+        aMain('Qoralama tozalandi.');}})),file,box);
+  r.append(h('div',{class:'row',style:'justify-content:space-between'},back('Saytga qaytish',()=>{location.hash='';openPage('home')})),
+    h('h3',{text:'Admin panel',style:'margin:16px 0 8px'}),st,tools);
+}
+function aLevel(code){
+  const L=LEVELS[code],r=adm();
+  const c=h('div',{class:'card',style:'margin-top:14px'},h('h3',{text:code+' – '+L.name,style:'margin-top:0'}));
+  L.lessons.forEach((ls,i)=>c.append(rowBtn((i+1)+'. '+ls.t,(ls.v?'video':'videosiz')+' · '+ls.q.length+' savol',()=>aLesson(code,i))));
+  c.append(h('button',{class:'b',text:'+ Yangi dars',onclick:()=>aLesson(code,null)}));
+  r.append(back('Admin',()=>aMain()),c);
+}
+function aLesson(code,idx){
+  const L=LEVELS[code],isNew=idx===null,ls=isNew?{t:'',v:'',q:[]}:L.lessons[idx];
+  const r=adm(),box=h('div',{class:'res'}),qs=[],qbox=h('div');
+  const [ti,tw]=fld('Dars nomi *',ls.t),[vi,vw]=fld('Video: YouTube havolasi/ID yoki .mp4 yo‘li',ls.v);
+  function addQ(q){
+    const [qi,qw]=fld('Savol',q.q),[oi,ow]=fld('Javoblar (har qatorda bittadan)',q.o.join('\n'),true),[ai,aw]=fld('To‘g‘ri javob raqami (1, 2, 3...)',String(q.a+1));
+    const item={qi,oi,ai},el2=h('div',{class:'card'},qw,ow,aw,h('button',{class:'b alt',text:'Savolni olib tashlash',onclick:()=>{qs.splice(qs.indexOf(item),1);el2.remove()}}));
+    qs.push(item);qbox.append(el2);
+  }
+  ls.q.forEach(addQ);
+  r.append(back(code,()=>aLevel(code)),h('div',{class:'card',style:'margin-top:14px'},
+    h('h3',{text:isNew?'Yangi dars':'Darsni tahrirlash',style:'margin-top:0'}),tw,vw,h('h3',{text:'Test savollari'}),qbox,
+    h('button',{class:'b alt',text:'+ Savol qo‘shish',onclick:()=>addQ({q:'',o:['',''],a:0})}),
+    h('div',{class:'row'},h('button',{class:'b',text:'Saqlash',onclick:save}),
+      isNew?null:h('button',{class:'b alt',text:'O‘chirish',onclick:()=>{
+        if(confirm('“'+ls.t+'” darsi o‘chiriladi. Davom etasizmi?')){L.lessons.splice(idx,1);persistContent();aLevel(code)}}})),box));
+  function save(){
+    const bad=t=>note(box,t,1),t=ti.value.trim();
+    if(!t||t.length>120)return bad('Dars nomi majburiy (120 belgigacha).');
+    const v=ytId(vi.value);if(v===null)return bad('Video havolasi noto‘g‘ri. YouTube havola/ID yoki .mp4 yo‘lini yozing.');
+    const q=[];
+    for(let n=0;n<qs.length;n++){
+      const s=qs[n].qi.value.trim(),o=qs[n].oi.value.split('\n').map(x=>x.trim()).filter(Boolean),a=parseInt(qs[n].ai.value,10);
+      if(!s&&!o.length)continue;
+      if(!s)return bad((n+1)+'-savol matni yo‘q.');
+      if(o.length<2)return bad((n+1)+'-savolda kamida 2 ta javob kerak.');
+      if(!(a>=1&&a<=o.length))return bad((n+1)+'-savolda to‘g‘ri javob raqami 1 dan '+o.length+' gacha bo‘lsin.');
+      q.push({q:s,o,a:a-1});
+    }
+    const nl={t,v,q};
+    if(isNew)L.lessons.push(nl);else L.lessons[idx]=nl;
+    persistContent();aLevel(code);
+  }
+}
+function chkAdmin(){if(location.hash==='#admin'){aMain();openPage('p-admin')}}
+addEventListener('hashchange',chkAdmin);chkAdmin();
 </script>
 </body>
+
 
 </html>
