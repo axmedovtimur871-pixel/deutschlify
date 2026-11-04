@@ -1,0 +1,37 @@
+// Ishga tushirish: node tests/learn.test.js
+const fs=require('fs'),assert=require('assert');
+const html=fs.readFileSync(__dirname+'/../index.html','utf8');
+const code=html.split('/*LEARN_START*/')[1].split('/*LEARN_END*/')[0];
+const {dstr,addDays,schedule,checkWrite,isWeak,streakInfo,computeStats}=new Function(code+';return {dstr,addDays,schedule,checkWrite,isWeak,streakInfo,computeStats}')();
+const T='2026-11-10';let n=0;const t=(m,f)=>{f();n++;console.log('ok -',m)};
+const iv=(s,g)=>schedule(s,g,T).interval;
+t('sana qo‘shish (oy chegarasi)',()=>assert.strictEqual(addDays('2026-11-30',2),'2026-12-02'));
+t('yangi karta: Again < Hard < Good < Easy',()=>{const a=iv({},'again'),h=iv({},'hard'),g=iv({},'good'),e=iv({},'easy');assert.ok(a<h&&h<g&&g<e,[a,h,g,e].join())});
+t('Again: bugunga qaytadi, lapse ortadi, ease kamayadi',()=>{const s=schedule({reps:3,interval:10,ease:2.5},'again',T);assert.strictEqual(s.due,T);assert.strictEqual(s.interval,0);assert.strictEqual(s.lapses,1);assert.ok(s.ease<2.5)});
+t('Good ketma-ket oraliqni o‘stiradi',()=>{let s={};const seq=[];for(let i=0;i<5;i++){s=schedule(s,'good',T);seq.push(s.interval)}for(let i=1;i<seq.length;i++)assert.ok(seq[i]>seq[i-1],seq.join())});
+t('Easy >= Good >= Hard (o‘rganilgan karta)',()=>{const s={reps:3,interval:10,ease:2.5};assert.ok(iv(s,'easy')>iv(s,'good')&&iv(s,'good')>iv(s,'hard')&&iv(s,'hard')>0)});
+t('ease 1.3 dan pasaymaydi',()=>{let s={reps:2,interval:5,ease:1.4};for(let i=0;i<5;i++)s=schedule(s,'again',T);assert.ok(s.ease>=1.3)});
+t('keyingi sana to‘g‘ri hisoblanadi',()=>assert.strictEqual(schedule({},'good',T).due,addDays(T,2)));
+t('yozish: aniq javob',()=>assert.ok(checkWrite({de:'Tisch',type:'Nomen',article:'der'},'Tisch').ok));
+t('yozish: artikl bilan ham qabul',()=>assert.ok(checkWrite({de:'Tisch',type:'Nomen',article:'der'},'der Tisch').ok));
+t('yozish: noto‘g‘ri artikl rad',()=>assert.ok(!checkWrite({de:'Tisch',type:'Nomen',article:'der'},'die Tisch').ok));
+t('yozish: ot kichik harf bilan — qabul, izoh bilan',()=>{const r=checkWrite({de:'Tisch'},'tisch');assert.ok(r.ok&&r.note)});
+t('yozish: ae/ue imlosi qabul',()=>assert.ok(checkWrite({de:'Mädchen'},'Maedchen').ok));
+t('yozish: bitta harf xato — rad, "deyarli"',()=>{const r=checkWrite({de:'Entscheidung'},'Entscheidnug'.replace('nug','ung')+'x');assert.ok(!r.ok)});
+t('yozish: bo‘sh javob',()=>assert.ok(checkWrite({de:'Tisch'},'  ').empty));
+t('yozish: butunlay noto‘g‘ri',()=>assert.ok(!checkWrite({de:'Tisch'},'Stuhl').ok));
+t('qiyin: bitta xato bilan emas',()=>assert.ok(!isWeak({hist:[1,1,0],srs:{lapses:1,tries:3,interval:2}})));
+t('qiyin: takroriy xatolar',()=>assert.ok(isWeak({hist:[0,1,0,0],srs:{lapses:1,tries:4,interval:0}})));
+t('qiyin: uch marta unutilgan',()=>assert.ok(isWeak({hist:[1,0,1,0],srs:{lapses:3,tries:6,interval:1}})));
+t('qiyin: so‘nggi 3 ta to‘g‘ri bo‘lsa tiklanadi',()=>assert.ok(!isWeak({hist:[0,0,0,1,1,1],srs:{lapses:3,tries:8,interval:4}})));
+t('streak: bugun bo‘lmasa kechagidan sanaydi',()=>{const s=streakInfo([addDays(T,-1),addDays(T,-2)],T);assert.strictEqual(s.cur,2)});
+t('streak: uzilgan kun 0 (jazosiz), eng uzuni saqlanadi',()=>{const s=streakInfo([addDays(T,-5),addDays(T,-4),addDays(T,-3)],T);assert.strictEqual(s.cur,0);assert.strictEqual(s.best,3)});
+t('statistika: haqiqiy hisob',()=>{
+  const cards=[{id:'a',srs:{tries:5,interval:30,due:addDays(T,10)},hist:[1,1,1]},{id:'b',srs:{tries:2,interval:2,due:T},hist:[1,0]},{id:'c'}];
+  const log=[{d:T,k:'a',ok:1},{d:T,k:'b',ok:0},{d:addDays(T,-1),k:'b',ok:1},{d:T,k:'zzz',ok:1}];
+  const s=computeStats(cards,log,T);
+  assert.deepStrictEqual([s.total,s.learned,s.practicing,s.fresh,s.due,s.attempts,s.correct,s.accuracy,s.week],[3,1,1,1,1,3,2,67,3]);
+  assert.strictEqual(s.days[6].n,2);
+});
+t('statistika: tarix bo‘lmasa aniqlik null',()=>assert.strictEqual(computeStats([{id:'a'}],[],T).accuracy,null));
+console.log(n+' ta test o‘tdi');
