@@ -157,11 +157,23 @@ header.brand .logo{width:38px;height:46px;padding:3px;background-color:#fff;back
 .chips{display:flex;flex-wrap:wrap;gap:8px;min-height:44px;align-items:center}
 .chip2{padding:10px 14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;font:inherit;cursor:pointer;min-height:44px}
 .chip2.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+header.brand{flex-wrap:wrap}
+.authbox{margin-left:auto}
+.authframe{display:flex;gap:6px;padding:5px;border:1.5px solid var(--line);border-radius:16px;background:var(--card);box-shadow:var(--shadow);align-items:center}
+.ab{min-height:36px;padding:0 12px;border:0;border-radius:11px;background:transparent;color:var(--ink);font:inherit;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.ab.pri{background:var(--blue);color:var(--bg)}
+.aname{padding:0 8px;font-size:.8rem;font-weight:600;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.authframe.big{padding:8px;gap:10px;margin:12px 0}
+.authframe.big .ab{flex:1;min-height:48px;font-size:1rem;border:1.5px solid var(--line)}
+.authframe.big .ab.pri{border-color:var(--blue)}
+.authframe.seg{margin-bottom:12px}.authframe.seg .ab{flex:1;min-height:42px;font-size:.9rem}
+.urow{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
 </style>
 </head>
 <body>
 <div class="stripe"></div>
-<header class="brand"><div class="logo logo-img" role="img" aria-label="Deutschlify logotipi"></div><span>Deutschlify</span></header>
+<header class="brand"><div class="logo logo-img" role="img" aria-label="Deutschlify logotipi"></div><span>Deutschlify</span><div class="authbox" id="authbox"></div></header>
 <div id="home" class="page on">
 <div class="hero"><div class="stage" aria-hidden="true"><img class="hero-img" src="hero.jpg" alt="" onerror="this.hidden=true"><div class="orb"><svg class="ring r1" viewBox="0 0 200 200"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8aa6ff"/><stop offset="1" stop-color="#c8a5ff"/></linearGradient></defs><rect x="22" y="22" width="156" height="156" rx="46" fill="none" stroke="url(#g1)" stroke-width="2" stroke-linecap="round" stroke-dasharray="300 520" transform="rotate(0 100 100)"/></svg><svg class="ring r2" viewBox="0 0 200 200"><defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8aa6ff"/><stop offset="1" stop-color="#f2b705"/></linearGradient></defs><rect x="22" y="22" width="156" height="156" rx="46" fill="none" stroke="url(#g2)" stroke-width="2" stroke-linecap="round" stroke-dasharray="180 640" transform="rotate(45 100 100)"/></svg><div class="tile"><div class="spin-logo logo-img" role="img" aria-label="Deutschlify logotipi"></div></div></div></div><div class="hero-txt"><span class="chip">Nemis tilini o‘rganish endi oson</span><h1>Nemis tilini o‘rganing va <em>yangi imkoniyatlarga</em> ochiling</h1><p>Matn o‘qing, nutqni tinglang va tarjima qiling. Har kuni bir oz, natija esa katta.</p></div><svg class="skyline" viewBox="0 0 600 130" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><g fill="var(--blue)" opacity=".14"><rect x="0" y="86" width="52" height="44"/><rect x="58" y="70" width="40" height="60"/><path d="M118 100a27 27 0 0 1 54 0z" transform="translate(0,-10)"/><rect x="118" y="90" width="54" height="40"/><rect x="430" y="84" width="40" height="46"/><rect x="476" y="96" width="14" height="34"/><rect x="540" y="78" width="60" height="52"/></g><g fill="var(--blue)" opacity=".38"><rect x="262" y="70" width="10" height="60"/><rect x="284" y="70" width="10" height="60"/><rect x="306" y="70" width="10" height="60"/><rect x="328" y="70" width="10" height="60"/><rect x="350" y="70" width="10" height="60"/><rect x="372" y="70" width="10" height="60"/><rect x="250" y="58" width="150" height="12"/><rect x="262" y="46" width="126" height="12"/><rect x="312" y="34" width="26" height="12"/><rect x="499" y="30" width="6" height="100"/><circle cx="502" cy="40" r="12"/><rect x="501" y="6" width="2" height="26"/></g><rect x="338" y="12" width="2" height="24" fill="#5f6b85"/><rect x="340" y="12" width="22" height="5" fill="#111"/><rect x="340" y="17" width="22" height="5" fill="#c8372d"/><rect x="340" y="22" width="22" height="5" fill="#f2b705"/><rect x="0" y="127" width="600" height="3" fill="var(--blue)" opacity=".25"/></svg></div>
 <div class="levels" id="levels"></div>
@@ -245,6 +257,7 @@ header.brand .logo{width:38px;height:46px;padding:3px;background-color:#fff;back
 
 <div class="page" id="p-level"><main><div id="lv"></div></main></div>
 
+<div class="page" id="p-auth"><main><div id="au"></div></main></div>
 <div class="page" id="p-admin"><main><div id="adm"></div></main></div>
 <div class="page" id="p-cards"><main><div id="fc"></div></main></div>
 
@@ -1557,6 +1570,89 @@ function vAch(){
     h('div',{class:'pbar'},h('i',{style:'width:'+(dn?100:Math.round(a.p/a.g*100))+'%'})),h('div',{class:'tr',text:dn?'Ochilgan'+(got[a.id]?' · '+got[a.id]:''):a.p+' / '+a.g})))});
 }
 
+
+/* ---------- Kirish / ro‘yxatdan o‘tish (qurilmadagi akkauntlar) ----------
+   Akkauntlar hozircha shu brauzerda (localStorage) saqlanadi, parol PBKDF2 bilan xeshlanadi.
+   Bu haqiqiy server akkaunti emas: boshqa qurilmalar bilan sinxronlanmaydi. */
+/*AUTH_START*/
+const emailOk=e=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e||'');
+function validateReg(f,users){
+  const name=(f.name||'').trim(),email=(f.email||'').trim().toLowerCase(),p=f.pass||'';
+  if(name.length<2||name.length>60)return 'Ismni kiriting (2–60 belgi).';
+  if(!emailOk(email)||email.length>120)return 'Email noto‘g‘ri.';
+  if(p.length<6||p.length>100)return 'Parol kamida 6 belgi bo‘lsin.';
+  if(p!==f.pass2)return 'Parollar mos kelmadi.';
+  if(users.some(u=>u.email===email))return 'Bu email bilan akkaunt allaqachon bor.';
+  return '';
+}
+const toHex=b=>[...b].map(x=>x.toString(16).padStart(2,'0')).join('');
+const fromHex=s=>Uint8Array.from(s.match(/../g)||[],x=>parseInt(x,16));
+const newSalt=()=>toHex(crypto.getRandomValues(new Uint8Array(16)));
+async function hashPw(p,saltHex){
+  const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(p),'PBKDF2',false,['deriveBits']);
+  return toHex(new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:fromHex(saltHex),iterations:100000},k,256)));
+}
+async function makeUser(f,users){
+  const salt=newSalt();
+  return{id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:f.name.trim(),email:f.email.trim().toLowerCase(),salt,hash:await hashPw(f.pass,salt),role:users.length?'user':'admin',created:new Date().toISOString()};
+}
+async function checkLogin(email,pass,users){
+  const u=users.find(x=>x.email===(email||'').trim().toLowerCase());
+  if(!u)return null;
+  return (await hashPw(pass||'',u.salt))===u.hash?u:null;
+}
+/*AUTH_END*/
+const getUsers=()=>store.get('users',[]);
+const curUser=()=>{const s=store.get('session',null);return s?getUsers().find(u=>u.id===s.id)||null:null};
+const isAdmin=()=>{const u=curUser();return !!u&&u.role==='admin'};
+function renderAuth(){
+  const b=$('authbox');b.innerHTML='';const u=curUser(),fr=h('div',{class:'authframe'});
+  if(!u)fr.append(h('button',{class:'ab pri',text:'Kirish',onclick:()=>vAuth('login')}),h('button',{class:'ab',text:'Ro‘yxatdan o‘tish',onclick:()=>vAuth('register')}));
+  else{
+    fr.append(h('span',{class:'aname',text:u.name}));
+    if(u.role==='admin')fr.append(h('button',{class:'ab',text:'Admin',onclick:()=>{location.hash='#admin';chkAdmin()}}));
+    fr.append(h('button',{class:'ab',text:'Chiqish',onclick:()=>{store.set('session',null);renderAuth();if(location.hash==='#admin')chkAdmin()}}));
+  }
+  b.append(fr);
+}
+function vAuth(mode,next){
+  const r=$('au');r.innerHTML='';openPage('p-auth');
+  const msg=h('div',{class:'res'}),reg=mode==='register';
+  const [ni,nw]=fld('Ismingiz',''),[ei,ew]=fld('Email',''),[pi,pw]=fld('Parol',''),[p2,p2w]=fld('Parolni takrorlang','');
+  pi.type='password';p2.type='password';ei.setAttribute('inputmode','email');ei.setAttribute('autocapitalize','off');
+  async function go(){
+    if(typeof crypto==='undefined'||!crypto.subtle)return note(msg,'Brauzeringiz xavfsiz kirishni qo‘llamaydi (HTTPS kerak).',1);
+    const users=getUsers();
+    try{
+      if(reg){
+        const f={name:ni.value,email:ei.value,pass:pi.value,pass2:p2.value},e=validateReg(f,users);if(e)return note(msg,e,1);
+        const u=await makeUser(f,users);store.set('users',users.concat(u));store.set('session',{id:u.id});
+      }else{
+        const u=await checkLogin(ei.value,pi.value,users);if(!u)return note(msg,'Email yoki parol noto‘g‘ri.',1);
+        store.set('session',{id:u.id});
+      }
+      renderAuth();
+      if(next==='admin'){location.hash='#admin';chkAdmin()}else openPage('home');
+    }catch(e){note(msg,'Xatolik yuz berdi. Qayta urinib ko‘ring.',1)}
+  }
+  [ei,pi,p2,ni].forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')go()}));
+  r.append(h('div',{class:'row'},back('Orqaga',()=>{if(next==='admin'){location.hash='#admin';chkAdmin()}else openPage('home')})),
+    h('div',{class:'card',style:'margin-top:14px'},
+      h('div',{class:'authframe seg'},h('button',{class:'ab'+(reg?'':' pri'),text:'Kirish',onclick:()=>vAuth('login',next)}),h('button',{class:'ab'+(reg?' pri':''),text:'Ro‘yxatdan o‘tish',onclick:()=>vAuth('register',next)})),
+      reg?nw:null,ew,pw,reg?p2w:null,
+      h('button',{class:'b',style:'width:100%;margin-top:6px',text:reg?'Ro‘yxatdan o‘tish':'Kirish',onclick:go}),msg,
+      h('p',{class:'tr',text:'Akkauntlar hozircha shu qurilmada saqlanadi. Bu qurilmadagi birinchi akkaunt admin bo‘ladi.'})));
+}
+function aGate(){
+  const r=adm(),u=curUser();
+  r.append(h('div',{class:'row'},back('Saytga qaytish',()=>{location.hash='';openPage('home')})),
+    h('div',{class:'card',style:'margin-top:14px'},h('h3',{text:'Admin panel',style:'margin-top:0'}),
+      h('p',{class:'tr',text:u?'Bu akkaunt ('+u.name+') admin emas.':'Admin panelga kirish uchun hisobingizga kiring.'}),
+      h('div',{class:'authframe big'},h('button',{class:'ab pri',text:'Kirish',onclick:()=>vAuth('login','admin')}),h('button',{class:'ab',text:'Ro‘yxatdan o‘tish',onclick:()=>vAuth('register','admin')})),
+      h('p',{class:'tr',text:'Bu qurilmadagi birinchi ro‘yxatdan o‘tgan akkaunt admin bo‘ladi.'})));
+}
+renderAuth();
+
 /* ---------- Admin panel (#admin) ----------
    O‘zgarishlar shu brauzerda qoralama sifatida saqlanadi. Hammaga ko‘rinishi uchun
    "content.json yuklab olish" ni bosib, faylni GitHub repository’ga yuklang. */
@@ -1594,8 +1690,13 @@ function fld(label,val,area){
   return [i,h('div',{class:'fld'},h('label',{for:i.id,text:label}),i)];
 }
 function aMain(msg,bad){
+  if(!isAdmin())return aGate();
   const r=adm(),box=h('div',{class:'res'});if(msg)note(box,msg,bad);
-  const st=h('div',{class:'card'},h('h3',{text:'Kontent',style:'margin-top:0'}));
+  const us=getUsers(),acc=h('div',{class:'card'},h('h3',{text:'Akkauntlar ('+us.length+')',style:'margin-top:0'}));
+  us.forEach(u=>acc.append(h('div',{class:'urow'},h('div',{style:'min-width:0;flex:1'},h('b',{text:u.name+(u.role==='admin'?' · admin':'')}),h('div',{class:'tr',style:'overflow-wrap:anywhere',text:u.email+' · '+u.created.slice(0,10)})),
+    u.role==='admin'?null:h('button',{class:'b alt',text:'O‘chirish',onclick:()=>{if(confirm('“'+u.name+'” akkaunti o‘chiriladi. Davom etasizmi?')){store.set('users',getUsers().filter(x=>x.id!==u.id));aMain('Akkaunt o‘chirildi.')}}}))));
+  acc.append(h('p',{class:'tr',text:'Ro‘yxat faqat shu qurilmada ro‘yxatdan o‘tganlarni ko‘rsatadi. Barcha qurilmalardagi foydalanuvchilar uchun server (masalan, Supabase) kerak.'}));
+  const st=h('div',{class:'card'},h('h3',{text:'Darslar joylash',style:'margin-top:0'}),h('p',{class:'tr',text:'Darajani tanlang, keyin “+ Yangi dars” ni bosing.'}));
   Object.keys(LEVELS).forEach(code=>{
     const ls=LEVELS[code].lessons;
     st.append(rowBtn(code+' – '+LEVELS[code].name,ls.length+' dars · '+ls.filter(x=>x.v).length+' video · '+ls.filter(x=>x.q.length).length+' test',()=>aLevel(code)));
@@ -1619,7 +1720,7 @@ function aMain(msg,bad){
         try{const rs=await fetch('content.json',{cache:'no-cache'});if(rs.ok){const d=await rs.json();if(validContent(d))applyContent(d)}}catch(e){}
         aMain('Qoralama tozalandi.');}})),file,box);
   r.append(h('div',{class:'row',style:'justify-content:space-between'},back('Saytga qaytish',()=>{location.hash='';openPage('home')})),
-    h('h3',{text:'Admin panel',style:'margin:16px 0 8px'}),st,tools);
+    h('h3',{text:'Admin panel',style:'margin:16px 0 8px'}),acc,st,tools);
 }
 function aLevel(code){
   const L=LEVELS[code],r=adm();
@@ -1664,50 +1765,6 @@ function aLesson(code,idx){
 }
 function chkAdmin(){if(location.hash==='#admin'){aMain();openPage('p-admin')}}
 addEventListener('hashchange',chkAdmin);chkAdmin();
-
-
-/* ---------- SUPABASE AUTH + CLOUD BACKUP ---------- */
-const DL_SUPABASE_URL='https://ajrblgdfumbjebdijrhj.supabase.co';
-const DL_SUPABASE_KEY='sb_publishable_qEnXQqrmRsCDU1Yv8O8hog_hTUKZSBH';
-let dlSupabase=null, dlUser=null, dlSyncTimer=null, dlRestoring=false;
-const dlLoadSupabase=()=>new Promise((resolve,reject)=>{
-  if(window.supabase){resolve();return}
-  const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-  sc.onload=resolve;sc.onerror=()=>reject(new Error('Supabase kutubxonasini yuklab bo‘lmadi. Internetni tekshiring.'));
-  document.head.appendChild(sc);
-});
-function dlNotice(t){let n=document.getElementById('dl-auth-notice');if(n)n.textContent=t;}
-function dlAuthUI(){
-  if(document.getElementById('dl-auth-open'))return;
-  const b=document.createElement('button');b.id='dl-auth-open';b.textContent='Hisobga kirish';
-  b.style.cssText='position:fixed;right:14px;top:12px;z-index:1000;border:0;border-radius:24px;padding:10px 15px;background:#2457d6;color:white;font-weight:700;box-shadow:0 3px 14px #0002';
-  b.onclick=()=>document.getElementById('dl-auth-modal').style.display='flex';document.body.appendChild(b);
-  const m=document.createElement('div');m.id='dl-auth-modal';m.style.cssText='display:none;position:fixed;inset:0;z-index:2000;background:#0009;align-items:center;justify-content:center;padding:18px';
-  m.innerHTML=`<div style="background:var(--card,#fff);color:var(--text,#172033);width:min(420px,100%);padding:24px;border-radius:18px;box-shadow:0 15px 50px #0004"><div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">Deutschlify account</h2><button id="dl-auth-close" aria-label="Yopish">✕</button></div><p style="opacity:.75">Ma’lumotlaringizni qurilmalar o‘rtasida saqlash uchun hisobingizga kiring.</p><label for="dl-auth-email">Email</label><input id="dl-auth-email" type="email" autocomplete="email" placeholder="email@example.com" style="box-sizing:border-box;width:100%;padding:12px;margin:6px 0 12px;border:1px solid #aaa;border-radius:9px"><label for="dl-auth-pass">Parol</label><input id="dl-auth-pass" type="password" autocomplete="current-password" placeholder="Kamida 6 ta belgi" style="box-sizing:border-box;width:100%;padding:12px;margin:6px 0 12px;border:1px solid #aaa;border-radius:9px"><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="dl-signin" class="b">Kirish</button><button id="dl-signup" class="b alt">Ro‘yxatdan o‘tish</button><button id="dl-signout" class="b alt" style="display:none">Chiqish</button></div><p id="dl-auth-notice" role="status" style="font-size:14px;line-height:1.5"></p></div>`;
-  document.body.appendChild(m);
-  m.addEventListener('click',e=>{if(e.target===m)m.style.display='none'});
-  document.getElementById('dl-auth-close').onclick=()=>m.style.display='none';
-  document.getElementById('dl-signin').onclick=async()=>{try{const {data,error}=await dlSupabase.auth.signInWithPassword({email:document.getElementById('dl-auth-email').value.trim(),password:document.getElementById('dl-auth-pass').value});if(error)throw error;await dlAfterLogin(data.user)}catch(e){dlNotice(e.message)}};
-  document.getElementById('dl-signup').onclick=async()=>{try{const {data,error}=await dlSupabase.auth.signUp({email:document.getElementById('dl-auth-email').value.trim(),password:document.getElementById('dl-auth-pass').value});if(error)throw error;if(data.user&&data.session)await dlAfterLogin(data.user);else dlNotice('Tasdiqlash havolasi emailingizga yuborildi. Emailni tekshiring.')}catch(e){dlNotice(e.message)}};
-  document.getElementById('dl-signout').onclick=async()=>{try{await dlSupabase.auth.signOut();dlUser=null;dlNotice('Hisobdan chiqildi. Ushbu qurilmadagi ma’lumotlar o‘chirilmaydi.');dlUpdateAuthButton()}catch(e){dlNotice(e.message)}};
-}
-function dlCollectLocal(){const d={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('dl_')){try{d[k]=JSON.parse(localStorage.getItem(k))}catch(_){d[k]=localStorage.getItem(k)}}}return d}
-async function dlCloudSave(){if(!dlSupabase||!dlUser||dlRestoring)return;const payload={user_id:dlUser.id,data:dlCollectLocal(),updated_at:new Date().toISOString()};const {error}=await dlSupabase.from('user_data').upsert(payload,{onConflict:'user_id'});if(error)dlNotice('Saqlashda xatolik: '+error.message);else dlNotice('Hisobingizga kirdingiz. Ma’lumotlar server bilan sinxronlandi.')}
-function dlScheduleSave(){if(!dlUser||dlRestoring)return;clearTimeout(dlSyncTimer);dlSyncTimer=setTimeout(()=>dlCloudSave().catch(e=>dlNotice(e.message)),900)}
-async function dlAfterLogin(user){
-  dlUser=user;dlRestoring=true;
-  try{const {data,error}=await dlSupabase.from('user_data').select('data').eq('user_id',user.id).maybeSingle();if(error)throw error;
-    if(data&&data.data){for(const [k,v] of Object.entries(data.data)){if(k.startsWith('dl_'))localStorage.setItem(k,JSON.stringify(v));}}
-    else await dlCloudSave();
-    if(typeof stats==='function')stats();if(document.getElementById('pname'))document.getElementById('pname').value=store.get('name','');
-    dlNotice('Kirish muvaffaqiyatli. Ma’lumotlar sinxronlandi.');
-  }catch(e){dlNotice('Bulut ma’lumotlarini olishda xatolik: '+e.message)}finally{dlRestoring=false;dlUpdateAuthButton()}
-}
-function dlUpdateAuthButton(){const b=document.getElementById('dl-auth-open');if(b)b.textContent=dlUser?'Hisob: '+(dlUser.email||'Kirish'):'Hisobga kirish';const so=document.getElementById('dl-signout');if(so)so.style.display=dlUser?'inline-block':'none'}
-(async function dlInit(){try{dlAuthUI();await dlLoadSupabase();dlSupabase=window.supabase.createClient(DL_SUPABASE_URL,DL_SUPABASE_KEY);const {data}=await dlSupabase.auth.getSession();if(data.session)await dlAfterLogin(data.session.user);dlSupabase.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_IN'&&session&&!dlUser)dlAfterLogin(session.user);if(event==='SIGNED_OUT'){dlUser=null;dlUpdateAuthButton()}});dlUpdateAuthButton();}catch(e){dlNotice(e.message||'Supabase ulanmadi.');}}
-)();
-const dlOriginalStoreSet=store.set.bind(store);store.set=(k,v)=>{dlOriginalStoreSet(k,v);dlScheduleSave()};
-
 </script>
 </body>
 
