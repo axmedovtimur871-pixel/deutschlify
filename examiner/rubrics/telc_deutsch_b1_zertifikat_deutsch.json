@@ -1,0 +1,192 @@
+{
+  "exam_profile": "telc_deutsch_b1_zertifikat_deutsch",
+  "exam_name": "Zertifikat Deutsch / telc Deutsch B1",
+  "level": "B1",
+  "variant": "general",
+  "rubric_version": "2026-11-13.1",
+  "status": "source_verified",
+  "human_review": "pending",
+  "note": "Facts (criteria names, bands, points, rules) are taken from the cited pages. Descriptor wording is summarised, not copied; the official text is copyright telc gGmbH and is not redistributed here.",
+  "parts": [
+    {
+      "part": "schriftlicher_ausdruck",
+      "supported": true,
+      "task": {
+        "text_type": "personal or semi-formal e-mail in reply to an e-mail",
+        "guiding_points_offered": 4,
+        "guiding_points_to_cover": 4,
+        "time_limit_min": 30,
+        "word_guidance": null,
+        "required_elements": [
+          "suitable order of the points",
+          "subject",
+          "salutation",
+          "introduction",
+          "closing"
+        ]
+      },
+      "criteria": [
+        {
+          "code": "aufgabenbewaeltigung",
+          "title_de": "Aufgabenbewältigung",
+          "group": "Inhaltliche Angemessenheit",
+          "bands": [
+            {
+              "band": "A",
+              "points": 5
+            },
+            {
+              "band": "B",
+              "points": 3
+            },
+            {
+              "band": "C",
+              "points": 1
+            },
+            {
+              "band": "D",
+              "points": 0
+            }
+          ],
+          "band_summaries": {
+            "A": "all four guiding points handled appropriately",
+            "B": "three guiding points",
+            "C": "two guiding points",
+            "D": "only one or none"
+          }
+        },
+        {
+          "code": "kommunikative_gestaltung",
+          "title_de": "Kommunikative Gestaltung",
+          "group": "Sprachliche Angemessenheit",
+          "bands": [
+            {
+              "band": "A",
+              "points": 5
+            },
+            {
+              "band": "B",
+              "points": 3
+            },
+            {
+              "band": "C",
+              "points": 1
+            },
+            {
+              "band": "D",
+              "points": 0
+            }
+          ],
+          "band_summaries": {
+            "A": "B1 well met (upper range of the target level)",
+            "B": "B1 met (at the target level)",
+            "C": "one level below the target level",
+            "D": "two or more levels below the target level"
+          },
+          "covers": [
+            "range of expression",
+            "structure and text logic",
+            "cohesion and coherence",
+            "connectors",
+            "register",
+            "vocabulary range"
+          ]
+        },
+        {
+          "code": "formale_richtigkeit",
+          "title_de": "Formale Richtigkeit",
+          "group": "Sprachliche Angemessenheit",
+          "bands": [
+            {
+              "band": "A",
+              "points": 5
+            },
+            {
+              "band": "B",
+              "points": 3
+            },
+            {
+              "band": "C",
+              "points": 1
+            },
+            {
+              "band": "D",
+              "points": 0
+            }
+          ],
+          "band_summaries": {
+            "A": "B1 well met",
+            "B": "B1 met",
+            "C": "one level below",
+            "D": "two or more levels below"
+          },
+          "covers": [
+            "grammar",
+            "spelling",
+            "punctuation"
+          ]
+        }
+      ],
+      "scoring": {
+        "method": "sum_then_multiply",
+        "multiplier": 3,
+        "max_total": 45,
+        "share_of_exam": "15 % of 300 points"
+      },
+      "special_rules": [
+        {
+          "code": "thema_verfehlt",
+          "rule": "If the text has no or hardly any connection to the writing task, D is given for all criteria."
+        },
+        {
+          "code": "situierung_verfehlt",
+          "rule": "If only the situation is missed, criterion I is D, but criteria II and III are still assessed."
+        },
+        {
+          "code": "criterion_iii_d",
+          "rule": "If criterion III is D, criteria I and II can still be C, B or A."
+        },
+        {
+          "code": "leitpunkt_fulfilled",
+          "rule": "A guiding point counts as fulfilled if it is handled meaningfully, still comprehensible and related to the task; a single short sentence is enough; it may share one sentence with a second point; for a two-part or plural point one answer is enough."
+        },
+        {
+          "code": "kg_a_not_given",
+          "rule": "A is not given for criterion II if the text-type features of the e-mail are missing, the register is wrong or fluctuates, the guiding points stand unconnected, or the sentences mostly begin with Ich or Wir."
+        },
+        {
+          "code": "fr_comprehensibility",
+          "rule": "Criterion III: comprehensibility comes first; ending and gender errors weigh less than agreement errors; A or B is possible if errors do not hinder quick comprehension."
+        }
+      ]
+    }
+  ],
+  "pass_rule_for_writing_alone": null,
+  "sources": [
+    {
+      "document": "b1_uebungstest",
+      "pdf_page": 38,
+      "supports": "descriptor table for criteria I-III"
+    },
+    {
+      "document": "b1_uebungstest",
+      "pdf_page": 39,
+      "supports": "explanations and band rules per criterion"
+    },
+    {
+      "document": "b1_uebungstest",
+      "pdf_page": 40,
+      "supports": "point table A/B/C/D = 5/3/1/0, sum multiplied by three, maximum 45"
+    },
+    {
+      "document": "b1_uebungstest",
+      "pdf_page": 19,
+      "supports": "task format, four points, 30 minutes"
+    },
+    {
+      "document": "b1_uebungstest",
+      "pdf_page": 41,
+      "supports": "points and weighting of the whole exam"
+    }
+  ]
+}

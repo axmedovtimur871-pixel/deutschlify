@@ -1,0 +1,182 @@
+{
+  "exam_profile": "telc_deutsch_c1_general",
+  "exam_name": "telc Deutsch C1",
+  "level": "C1",
+  "variant": "general",
+  "not_to_be_confused_with": [
+    "telc Deutsch C1 Hochschule",
+    "telc Deutsch C1 Beruf"
+  ],
+  "rubric_version": "2026-11-13.1",
+  "status": "source_verified",
+  "human_review": "pending",
+  "note": "Facts (criteria names, bands, points, rules) are taken from the cited pages. Descriptor wording is summarised, not copied; the official text is copyright telc gGmbH and is not redistributed here.",
+  "parts": [
+    {
+      "part": "schriftlicher_ausdruck",
+      "supported": true,
+      "task": {
+        "text_type": "argumentative text developing and justifying your own position",
+        "topics_to_choose_from": 2,
+        "time_limit_min": 70,
+        "word_guidance": "etwa 350 Wörter"
+      },
+      "band_meaning": {
+        "A": "meets the C1 target level in every respect",
+        "B": "predominantly",
+        "C": "predominantly not",
+        "D": "not at all"
+      },
+      "criteria": [
+        {
+          "code": "aufgabengerechtheit",
+          "title_de": "Aufgabengerechtheit",
+          "bands": [
+            {
+              "band": "A",
+              "points": 12
+            },
+            {
+              "band": "B",
+              "points": 8
+            },
+            {
+              "band": "C",
+              "points": 4
+            },
+            {
+              "band": "D",
+              "points": 0
+            }
+          ],
+          "target": [
+            "covers the content requirements of the task fully",
+            "has a clear thread",
+            "engages critically with the topic"
+          ]
+        },
+        {
+          "code": "korrektheit",
+          "title_de": "Korrektheit",
+          "bands": [
+            {
+              "band": "A",
+              "points": 12
+            },
+            {
+              "band": "B",
+              "points": 8
+            },
+            {
+              "band": "C",
+              "points": 4
+            },
+            {
+              "band": "D",
+              "points": 0
+            }
+          ],
+          "target": [
+            "very few or no errors in morphology, syntax and orthography",
+            "a few errors in complex constructions"
+          ]
+        },
+        {
+          "code": "repertoire",
+          "title_de": "Repertoire",
+          "bands": [
+            {
+              "band": "A",
+              "points": 12
+            },
+            {
+              "band": "B",
+              "points": 8
+            },
+            {
+              "band": "C",
+              "points": 4
+            },
+            {
+              "band": "D",
+              "points": 0
+            }
+          ],
+          "target": [
+            "wide range and complexity of expression",
+            "complex sentence forms"
+          ]
+        },
+        {
+          "code": "kommunikative_gestaltung",
+          "title_de": "Kommunikative Gestaltung",
+          "bands": [
+            {
+              "band": "A",
+              "points": 12
+            },
+            {
+              "band": "B",
+              "points": 8
+            },
+            {
+              "band": "C",
+              "points": 4
+            },
+            {
+              "band": "D",
+              "points": 0
+            }
+          ],
+          "target": [
+            "well structured at paragraph level",
+            "appropriate linking devices",
+            "cohesion and coherence succeed"
+          ]
+        }
+      ],
+      "scoring": {
+        "method": "sum",
+        "max_total": 48,
+        "share_of_exam": "22,5 % of 214 points"
+      },
+      "special_rules": [
+        {
+          "code": "thema_verfehlt",
+          "rule": "If the text does not relate to one of the topics offered, all four criteria are rated D."
+        }
+      ]
+    }
+  ],
+  "pass_rule_for_writing_alone": null,
+  "sources": [
+    {
+      "document": "c1_uebungstest",
+      "pdf_page": 22,
+      "supports": "task format, 70 minutes, etwa 350 Wörter"
+    },
+    {
+      "document": "c1_uebungstest",
+      "pdf_page": 40,
+      "supports": "four criteria and band meaning"
+    },
+    {
+      "document": "c1_uebungstest",
+      "pdf_page": 42,
+      "supports": "point table 12/8/4/0, total 48, Thema verfehlt"
+    },
+    {
+      "document": "c1_uebungstest",
+      "pdf_page": 43,
+      "supports": "overview table of all four criteria"
+    },
+    {
+      "document": "c1_uebungstest",
+      "pdf_page": 48,
+      "supports": "points and weighting of the whole exam"
+    }
+  ],
+  "open_items": [
+    "PDF page 41 (detail for Korrektheit and Repertoire) was not read line by line; the overview on page 43 was used."
+  ]
+}
