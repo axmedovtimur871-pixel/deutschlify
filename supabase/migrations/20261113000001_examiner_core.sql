@@ -8,12 +8,7 @@ create extension if not exists pgcrypto;
 -- ---------------------------------------------------------------------------
 -- Users and roles
 -- ---------------------------------------------------------------------------
-create table if not exists public.profiles (
-  id uuid primary key references auth.users (id) on delete cascade,
-  display_name text check (char_length(display_name) <= 80),
-  ui_lang text not null default 'uz' check (ui_lang in ('uz', 'en')),
-  created_at timestamptz not null default now()
-);
+-- The database already has public.profiles and public.user_profiles; this migration leaves them untouched.
 
 -- Roles live in their own table with no client write policy, so a user can never promote themselves.
 create table if not exists public.user_roles (
@@ -273,7 +268,6 @@ create index if not exists ai_runs_assessment_idx on public.ai_runs (assessment_
 -- ---------------------------------------------------------------------------
 -- Row level security
 -- ---------------------------------------------------------------------------
-alter table public.profiles enable row level security;
 alter table public.user_roles enable row level security;
 alter table public.exam_profiles enable row level security;
 alter table public.source_documents enable row level security;
@@ -293,10 +287,6 @@ alter table public.benchmark_samples enable row level security;
 alter table public.ai_runs enable row level security;
 alter table public.usage_daily enable row level security;
 
--- Own profile: read and edit (it holds no privileged columns).
-create policy profiles_select_own on public.profiles for select to authenticated using (id = (select auth.uid()));
-create policy profiles_insert_own on public.profiles for insert to authenticated with check (id = (select auth.uid()));
-create policy profiles_update_own on public.profiles for update to authenticated using (id = (select auth.uid())) with check (id = (select auth.uid()));
 create policy user_roles_select_own on public.user_roles for select to authenticated using (user_id = (select auth.uid()));
 
 -- Reference data: signed-in users read active profiles and released rubrics. Drafts stay server-side.
