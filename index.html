@@ -1011,21 +1011,38 @@ Object.assign(UZ,{'Board':'Doska','Chat':'Suhbat','Name a topic and the teacher 
 'Which topic shall I explain?':'Qaysi mavzuni tushuntiray?','Play':'Ijro etish','Pause':'To‘xtatish','Explanation':'Tushuntirish','Your answer in German':'Nemischa javobingiz','Correct!':'To‘g‘ri!','Expected:':'To‘g‘ri javob:','Check yourself':'O‘zingizni tekshiring','Ask in chat':'Suhbatda so‘rash',
 'Tap a German line to hear it. The lesson is written by AI: if something looks wrong, ask in the chat or check your textbook.':'Nemischa qatorni bossangiz, o‘qib beriladi. Darsni AI yozadi: biror narsa noto‘g‘ri ko‘rinsa, suhbatda so‘rang yoki darsligingizdan tekshiring.'});
 UZP.push([/^Saved lessons \((\d+)\)$/,'Saqlangan darslar ($1)']);
+Object.assign(UZ,{'This device has no German voice. Add German in your text-to-speech settings, or open the site in Chrome.':'Bu qurilmada nemischa ovoz yo‘q. Telefon sozlamalaridagi «Matnni nutqqa aylantirish» bo‘limida nemis tilini qo‘shing yoki saytni Chrome’da oching.'});
 UZP.push([/^Signed in as (.+)$/,'Hisob: $1']);
 UZP.push([/^Hello, (.+)!$/,'Salom, $1!'],[/^Conversation history \((\d+)\)$/,'Suhbatlar tarixi ($1)'],[/^(\d+) exercises · (\w+)$/,'$1 ta mashq · $2'],[/^Heard: “(.*)”$/,'Eshitildi: “$1”'],[/^(\d+)% of the words matched$/,'so‘zlarning $1% mos keldi'],
   [/^(Everyday phrases|Question and answer|Topic-based speaking|Free speaking) · (\w+)$/,(m,a,b)=>UZ[a]+' · '+b]);
 /* ---------- Tabs ---------- */
 
 /* ---------- Speech helper ---------- */
-function speak(text,rate=1){
-  if(!('speechSynthesis' in window)){document.getElementById('novoice').textContent=T('Your browser does not support speech output.');return}
+/* German speech. The browser reads text with whatever voice it is given, so a missing or late-loading
+   German voice makes German sound like English. We therefore wait for the voice list, pick the best German
+   voice the device has, and refuse to read German with a non-German voice. */
+const DE_NAMES=/anna|katja|petra|markus|conrad|hedda|stefan|helena|viktor|yannick|martin|vicki|marlene|hans/i;
+function germanVoice(){
+  const vs=speechSynthesis.getVoices().filter(v=>/^de([-_]|$)/i.test(v.lang||''));
+  if(!vs.length)return null;
+  const score=v=>(/natural|neural|premium|enhanced|online/i.test(v.name)?8:0)+(/google/i.test(v.name)?6:0)+(/^de[-_]DE/i.test(v.lang)?3:0)+(DE_NAMES.test(v.name)?2:0)+(/compact|espeak/i.test(v.name)?-4:0);
+  return vs.sort((a,b)=>score(b)-score(a))[0];
+}
+function sayGerman(text,rate){
+  const all=speechSynthesis.getVoices(),v=germanVoice();
+  if(all.length&&!v){if(typeof toast==='function')toast('This device has no German voice. Add German in your text-to-speech settings, or open the site in Chrome.');return}
   speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang='de-DE';u.rate=rate;
-  const v=speechSynthesis.getVoices().find(v=>v.lang&&v.lang.startsWith('de'));
-  if(v)u.voice=v;
+  const u=new SpeechSynthesisUtterance(text);u.lang=v?v.lang.replace('_','-'):'de-DE';if(v)u.voice=v;u.rate=rate;u.pitch=1;
   speechSynthesis.speak(u);
 }
+function speak(text,rate=1){
+  if(!('speechSynthesis' in window)){const n=document.getElementById('novoice');if(n)n.textContent=T('Your browser does not support speech output.');return}
+  if(speechSynthesis.getVoices().length)return sayGerman(text,rate);
+  /* Voice list not loaded yet (first tap on some browsers): wait briefly, then speak. */
+  let done=false;const go=()=>{if(done)return;done=true;sayGerman(text,rate)};
+  speechSynthesis.addEventListener('voiceschanged',go,{once:true});setTimeout(go,1200);
+}
+if(typeof window!=='undefined'&&'speechSynthesis' in window)speechSynthesis.getVoices();
 
 /* ---------- LESEN ---------- */
 const texts=[
