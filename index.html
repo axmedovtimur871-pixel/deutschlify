@@ -1012,15 +1012,24 @@ Object.assign(UZ,{'Board':'Doska','Chat':'Suhbat','Name a topic and the teacher 
 'Tap a German line to hear it. The lesson is written by AI: if something looks wrong, ask in the chat or check your textbook.':'Nemischa qatorni bossangiz, o‘qib beriladi. Darsni AI yozadi: biror narsa noto‘g‘ri ko‘rinsa, suhbatda so‘rang yoki darsligingizdan tekshiring.'});
 UZP.push([/^Saved lessons \((\d+)\)$/,'Saqlangan darslar ($1)']);
 Object.assign(UZ,{'This device has no German voice. Add German in your text-to-speech settings, or open the site in Chrome.':'Bu qurilmada nemischa ovoz yo‘q. Telefon sozlamalaridagi «Matnni nutqqa aylantirish» bo‘limida nemis tilini qo‘shing yoki saytni Chrome’da oching.'});
+Object.assign(UZ,{'The Uzbek voice is not available right now.':'O‘zbekcha ovoz hozircha mavjud emas.','Press play to hear the explanation, or tap a German line to hear it. The lesson is written by AI: if something looks wrong, ask in the chat or check your textbook.':'Tushuntirishni eshitish uchun ijro tugmasini bosing, nemischa qatorni bossangiz u o‘qib beriladi. Darsni AI yozadi: biror narsa noto‘g‘ri ko‘rinsa, suhbatda so‘rang yoki darsligingizdan tekshiring.'});
 UZP.push([/^Signed in as (.+)$/,'Hisob: $1']);
 UZP.push([/^Hello, (.+)!$/,'Salom, $1!'],[/^Conversation history \((\d+)\)$/,'Suhbatlar tarixi ($1)'],[/^(\d+) exercises · (\w+)$/,'$1 ta mashq · $2'],[/^Heard: “(.*)”$/,'Eshitildi: “$1”'],[/^(\d+)% of the words matched$/,'so‘zlarning $1% mos keldi'],
   [/^(Everyday phrases|Question and answer|Topic-based speaking|Free speaking) · (\w+)$/,(m,a,b)=>UZ[a]+' · '+b]);
 /* ---------- Tabs ---------- */
 
 /* ---------- Speech helper ---------- */
-/* German speech. The browser reads text with whatever voice it is given, so a missing or late-loading
-   German voice makes German sound like English. We therefore wait for the voice list, pick the best German
-   voice the device has, and refuse to read German with a non-German voice. */
+/* ---------- Speech ----------
+   speak(text, rate, lang, onend) reads German ("de") or Uzbek ("uz") aloud.
+   1. Cloud voice: the "tts" Edge Function turns the text into audio with NeuronAI and stores the file, so each
+      phrase is generated once and afterwards served from storage. The same natural voice on every device.
+   2. Fallback for German only: the device's own German voice, if the cloud voice is unavailable. A German text
+      is never read with a non-German voice.
+   onend(true) fires when playback finished, onend(false) when nothing could be played. */
+const TTS_SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
+let TTSA=null,TTS_OFF=0,TTS_N=0;
+const ttsUrls=()=>{try{return JSON.parse(sessionStorage.getItem('dl_tts')||'{}')}catch(e){return {}}};
+const ttsRemember=(k,u)=>{try{const m=ttsUrls(),ks=Object.keys(m);if(ks.length>300)delete m[ks[0]];m[k]=u;sessionStorage.setItem('dl_tts',JSON.stringify(m))}catch(e){}};
 const DE_NAMES=/anna|katja|petra|markus|conrad|hedda|stefan|helena|viktor|yannick|martin|vicki|marlene|hans/i;
 function germanVoice(){
   const vs=speechSynthesis.getVoices().filter(v=>/^de([-_]|$)/i.test(v.lang||''));
@@ -1028,19 +1037,43 @@ function germanVoice(){
   const score=v=>(/natural|neural|premium|enhanced|online/i.test(v.name)?8:0)+(/google/i.test(v.name)?6:0)+(/^de[-_]DE/i.test(v.lang)?3:0)+(DE_NAMES.test(v.name)?2:0)+(/compact|espeak/i.test(v.name)?-4:0);
   return vs.sort((a,b)=>score(b)-score(a))[0];
 }
-function sayGerman(text,rate){
-  const all=speechSynthesis.getVoices(),v=germanVoice();
-  if(all.length&&!v){if(typeof toast==='function')toast('This device has no German voice. Add German in your text-to-speech settings, or open the site in Chrome.');return}
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);u.lang=v?v.lang.replace('_','-'):'de-DE';if(v)u.voice=v;u.rate=rate;u.pitch=1;
-  speechSynthesis.speak(u);
-}
-function speak(text,rate=1){
-  if(!('speechSynthesis' in window)){const n=document.getElementById('novoice');if(n)n.textContent=T('Your browser does not support speech output.');return}
-  if(speechSynthesis.getVoices().length)return sayGerman(text,rate);
-  /* Voice list not loaded yet (first tap on some browsers): wait briefly, then speak. */
-  let done=false;const go=()=>{if(done)return;done=true;sayGerman(text,rate)};
+function deviceSpeak(text,rate,onend){
+  if(!('speechSynthesis' in window)){const n=document.getElementById('novoice');if(n)n.textContent=T('Your browser does not support speech output.');if(onend)onend(false);return}
+  const say=()=>{
+    const all=speechSynthesis.getVoices(),v=germanVoice();
+    if(all.length&&!v){if(typeof toast==='function')toast('This device has no German voice. Add German in your text-to-speech settings, or open the site in Chrome.');if(onend)onend(false);return}
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);u.lang=v?v.lang.replace('_','-'):'de-DE';if(v)u.voice=v;u.rate=rate;u.pitch=1;
+    if(onend){u.onend=()=>onend(true);u.onerror=()=>onend(false)}
+    speechSynthesis.speak(u);
+  };
+  if(speechSynthesis.getVoices().length)return say();
+  let done=false;const go=()=>{if(done)return;done=true;say()};
   speechSynthesis.addEventListener('voiceschanged',go,{once:true});setTimeout(go,1200);
+}
+function stopSpeech(){TTS_N++;if(TTSA)TTSA.pause();if(typeof window!=='undefined'&&'speechSynthesis' in window)speechSynthesis.cancel()}
+function speak(text,rate=1,lang='de',onend){
+  text=(text||'').replace(/\s+/g,' ').trim();if(!text){if(onend)onend(false);return}
+  const local=()=>{if(lang==='de')deviceSpeak(text,rate,onend);else if(onend)onend(false)};
+  if(typeof Audio==='undefined'||typeof fetch==='undefined'||typeof SB_URL==='undefined'||Date.now()<TTS_OFF||text.length>(lang==='uz'?500:300))return local();
+  stopSpeech();const n=TTS_N;
+  /* Phones only let audio start inside the tap, so the shared player is started (silently) right away
+     and then pointed at the real file once its address is known. */
+  if(!TTSA){TTSA=new Audio();TTSA.src=TTS_SILENT;TTSA.play().catch(()=>{})}
+  const a=TTSA,key=lang+'|'+text;
+  (async()=>{
+    try{
+      let url=ttsUrls()[key];
+      if(!url){
+        const r=await fetch(SB_URL+'/functions/v1/tts',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY},body:JSON.stringify({text,lang})}),d=await r.json().catch(()=>({}));
+        if(!r.ok||!d.url){if(/tts_not_configured|tts_balance_empty|daily_limit_reached/.test(d.error||''))TTS_OFF=Date.now()+10*60000;throw new Error(d.error||'tts')}
+        url=d.url;ttsRemember(key,url);
+      }
+      if(n!==TTS_N)return;
+      a.onended=()=>{if(n===TTS_N&&onend)onend(true)};a.onerror=()=>{if(n===TTS_N)local()};
+      a.src=url;a.playbackRate=rate;await a.play();
+    }catch(e){if(n===TTS_N)local()}
+  })();
 }
 if(typeof window!=='undefined'&&'speechSynthesis' in window)speechSynthesis.getVoices();
 
@@ -1264,8 +1297,14 @@ function vBoard(){
     let i=0,playing=false;const N=b.steps.length;
     const canvas=h('div',{class:'board'}),side=h('div',{class:'bsteps'}),prog=h('div',{class:'bprog','aria-hidden':'true'}),qbox=h('div');
     const playB=h('button',{class:'iconb bplay','aria-label':'Play'}),prevB=h('button',{class:'b alt',text:'← Previous'}),nextB=h('button',{class:'b',text:'Next →'});
-    const stop=()=>{playing=false;clearTimeout(BTIMER);playB.innerHTML=ico('play');playB.setAttribute('aria-label',T('Play'))};
-    const tick=()=>{clearTimeout(BTIMER);if(!playing)return;if(i>=N-1)return stop();BTIMER=setTimeout(()=>{i++;draw();tick()},Math.max(4500,b.steps[i].say.length*75))};
+    const stop=()=>{playing=false;clearTimeout(BTIMER);stopSpeech();playB.innerHTML=ico('play');playB.setAttribute('aria-label',T('Play'))};
+    /* While playing, each step is read aloud in Uzbek and the board moves on when the voice finishes;
+       without a voice it falls back to a reading-time pause. */
+    const tick=()=>{
+      clearTimeout(BTIMER);if(!playing)return;const at=i;let fired=false;
+      const next=wait=>{if(fired)return;fired=true;BTIMER=setTimeout(()=>{if(!playing||i!==at)return;if(i>=N-1)return stop();i++;draw();tick()},wait)};
+      speak(b.steps[i].say,1,'uz',ok=>next(ok?700:Math.max(4500,b.steps[i].say.length*75)));
+    };
     function draw(){
       canvas.innerHTML='';side.innerHTML='';prog.innerHTML='';
       canvas.append(h('h2',{text:b.title}));
@@ -1286,8 +1325,8 @@ function vBoard(){
     playB.onclick=()=>{if(playing)return stop();if(i>=N-1)i=0;playing=true;playB.innerHTML=ico('pause');playB.setAttribute('aria-label',T('Pause'));draw();tick()};
     prevB.onclick=()=>{stop();i=Math.max(0,i-1);draw()};nextB.onclick=()=>{stop();i=Math.min(N-1,i+1);draw()};
     area.innerHTML='';
-    area.append(h('div',{class:'board-wrap'},h('div',{},canvas,h('div',{class:'bctl'},playB,prog,prevB,nextB)),h('div',{},h('div',{class:'k',style:'margin:4px 0 8px',text:'Explanation'}),side)),qbox,
-      h('p',{class:'tr',text:'Tap a German line to hear it. The lesson is written by AI: if something looks wrong, ask in the chat or check your textbook.'}));
+    area.append(h('div',{class:'board-wrap'},h('div',{},canvas,h('div',{class:'bctl'},playB,prog,prevB,nextB)),h('div',{},h('div',{class:'k',style:'margin:4px 0 8px'},'Explanation',h('button',{class:'linkb',text:'Listen',onclick:()=>{stop();speak(b.steps[i].say,1,'uz',ok=>{if(!ok)toast('The Uzbek voice is not available right now.')})}})),side)),qbox,
+      h('p',{class:'tr',text:'Press play to hear the explanation, or tap a German line to hear it. The lesson is written by AI: if something looks wrong, ask in the chat or check your textbook.'}));
     stop();draw();
     if(area.scrollIntoView)area.scrollIntoView({behavior:'smooth',block:'start'});
   }
