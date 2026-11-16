@@ -1111,6 +1111,8 @@ function cloudCard(onDone){
 }
 const LV5=['A1','A2','B1','B2','C1'];
 const lehrerOn=()=>!!API_URL;
+/* Element.append() would print the word "null" for a missing optional block, so drop those first. */
+const put=(el,...kids)=>el.append(...kids.filter(k=>k!=null));
 let LH=null;
 const lhAll=()=>store.get('lehrer',[]);
 const lhSave=()=>{if(!LH||!LH.msgs.length)return;const a=lhAll().filter(c=>c.id!==LH.id);a.unshift(LH);store.set('lehrer',a.slice(0,30))};
@@ -1131,7 +1133,7 @@ function vLehrer(seed){
   const root=$('lehrer');if(!root)return;root.innerHTML='';
   const on=lehrerOn(),lvl=store.get('tlevel','A1');
   if(on&&!cloud.get()){
-    root.append(h('div',{class:'ptitle',style:'margin-top:0'},h('h1',{text:'AI Lehrer'}),h('p',{text:'What shall we practise in German today?'})),cloudCard(()=>vLehrer(seed)));
+    put(root,h('div',{class:'ptitle',style:'margin-top:0'},h('h1',{text:'AI Lehrer'}),h('p',{text:'What shall we practise in German today?'})),cloudCard(()=>vLehrer(seed)));
     return;
   }
   if(!LH)LH={id:uid(),t:Date.now(),mode:'free',msgs:[]};
@@ -1159,7 +1161,7 @@ function vLehrer(seed){
   const all=lhAll(),hist=h('details',{class:'lhist'},h('summary',{text:'Conversation history ('+all.length+')'}),
     ...(all.length?all.map(c=>h('div',{class:'urow'},h('button',{class:'linkb',style:'flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap',text:(c.msgs[0]?c.msgs[0].x:'…').slice(0,60),onclick:()=>{LH=c;vLehrer()}}),h('small',{text:new Date(c.t).toLocaleDateString('de-DE')}),
       h('button',{class:'iconb','aria-label':'Delete',onclick:()=>{store.set('lehrer',lhAll().filter(x=>x.id!==c.id));if(LH&&LH.id===c.id)LH=null;vLehrer()}},ic('x')))):[h('p',{class:'tr',text:'Your conversations will be saved here, in this browser.'})]));
-  root.append(
+  put(root,
     h('div',{class:'ptitle row',style:'justify-content:space-between;align-items:flex-end;margin-top:0'},h('div',{},h('h1',{text:'AI Lehrer'}),h('p',{text:'What shall we practise in German today?'})),
       h('div',{class:'row',style:'margin:0'},lw,h('button',{class:'b alt',text:'New conversation',onclick:()=>{LH=null;vLehrer()}}))),
     on&&cloud.get()?h('p',{class:'tr',style:'margin:-6px 0 14px',text:'Signed in as '+cloud.get().email}):null,
@@ -1198,7 +1200,7 @@ function vSprecher(mode){
   if(!mode){
     const [ls,lw]=sel2('Level',LV5.map(x=>[x,x]),lvl);ls.onchange=()=>{store.set('tlevel',ls.value);vSprecher()};lw.className='fld lv-pick';
     const hist=store.get('spkh',[]);
-    root.append(h('div',{class:'ptitle row',style:'justify-content:space-between;align-items:flex-end;margin-top:0'},h('div',{},h('h1',{text:'AI Sprecher'}),h('p',{text:'Practise speaking German aloud.'})),lw),
+    put(root,h('div',{class:'ptitle row',style:'justify-content:space-between;align-items:flex-end;margin-top:0'},h('div',{},h('h1',{text:'AI Sprecher'}),h('p',{text:'Practise speaking German aloud.'})),lw),
       SR?null:h('div',{class:'card remind'},h('div',{},h('b',{text:'This browser cannot recognise speech.'}),h('div',{class:'tr',style:'margin-top:4px',text:'Open Deutschlify in Chrome, Edge or Safari to use the microphone exercises. Listening to the phrases still works here.'}))),
       h('div',{class:'pcs'},...SPK_MODES.map(([id,t,d,c])=>{const n=items(id).length,soon=id==='pic';
         return h('button',{class:'pc '+c,...(soon||!n?{disabled:''}:{}),onclick:()=>vSprecher(id)},h('b',{text:t}),h('span',{text:d}),
@@ -1239,7 +1241,7 @@ function vSprecher(mode){
     rec.onend=()=>{setState('ready');if(!got){res.className='res bad';res.textContent=T('Nothing was heard. Move closer to the microphone and try again.')}};
     try{rec.start()}catch(e){setState('ready')}
   };
-  root.append(h('div',{class:'row',style:'margin-top:0'},h('button',{class:'b alt',text:'← All exercises',onclick:()=>{if(rec)try{rec.abort()}catch(e){}vSprecher()}})),card);
+  put(root,h('div',{class:'row',style:'margin-top:0'},h('button',{class:'b alt',text:'← All exercises',onclick:()=>{if(rec)try{rec.abort()}catch(e){}vSprecher()}})),card);
   draw();
 }
 
