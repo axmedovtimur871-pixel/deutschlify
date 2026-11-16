@@ -4,6 +4,9 @@
 //   -> { reply: string, remaining: number }
 // POST /functions/v1/ai   { mode: "board", level, messages: [{role: "user", content: <topic>}] }
 //   -> { board: { title, steps: [{say, heading, kind, lines: [{de, uz}]}], question: {prompt, answers, explain} }, remaining }
+// POST /functions/v1/ai   { mode: "word", level, messages: [{role: "user", content: <one word>}] }
+//   -> { word: { word, pos, article, uz, definition_de, definition_uz, example_de, example_uz, synonyms, antonyms, note }, remaining }
+//      or 422 { error: "not_a_word" } when the input is not a German or Uzbek word
 //
 // - The caller must be signed in with Supabase Auth; the gateway verifies the JWT and this function reads the user from it.
 // - The Claude API key lives only in the function secret ANTHROPIC_API_KEY and never reaches the browser.
@@ -16,7 +19,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const MODEL = Deno.env.get("AI_MODEL") ?? "claude-haiku-5-5";
 const DAILY_LIMIT = Number(Deno.env.get("AI_DAILY_MESSAGES") ?? "30");
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
-const MODES = ["free", "grammar", "check", "speak", "board"];
+const MODES = ["free", "grammar", "check", "speak", "board", "word"];
 const MAX_TURNS = 16; // only the most recent turns are sent, to keep long chats affordable
 const MAX_CHARS = 2000;
 
@@ -73,6 +76,45 @@ const BOARD_SCHEMA = {
   },
 };
 
+// Dictionary card for one word (structured outputs).
+const WORD_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["ok", "word", "pos", "article", "uz", "definition_de", "definition_uz", "example_de", "example_uz", "synonyms", "antonyms", "note"],
+  properties: {
+    ok: { type: "boolean" },
+    word: { type: "string" },
+    pos: { type: "string", enum: ["Nomen", "Verb", "Adjektiv", "Adverb", "Präposition", "Konjunktion", "Pronomen", "Ausdruck", "Sonstiges"] },
+    article: { type: "string", enum: ["der", "die", "das", ""] },
+    uz: { type: "string" },
+    definition_de: { type: "string" },
+    definition_uz: { type: "string" },
+    example_de: { type: "string" },
+    example_uz: { type: "string" },
+    synonyms: { type: "array", items: { type: "string" } },
+    antonyms: { type: "array", items: { type: "string" } },
+    note: { type: "string" },
+  },
+};
+
+function wordPrompt(level: string): string {
+  return [
+    "You are a German–Uzbek dictionary inside Deutschlify, a German-learning platform for Uzbek speakers.",
+    "The user types ONE word. It may be German or Uzbek.",
+    "If it is Uzbek, `word` is the German equivalent (correct German spelling, capitalised for nouns) and `uz` is the Uzbek word the user typed.",
+    "If it is German, `word` is the German word as written in its dictionary form, and `uz` is its Uzbek translation.",
+    "If the input is neither a German nor an Uzbek word or short phrase, set `ok` to false and leave every other field empty (empty strings and empty arrays).",
+    `The learner's level is ${level} (CEFR). Choose simple vocabulary for the definition and the example that fits this level.`,
+    "Write Uzbek in Latin script. `definition_de` is one short, simple German sentence explaining the meaning. `definition_uz` gives the same meaning in Uzbek.",
+    "`example_de` is one natural German sentence that uses the word correctly; `example_uz` is its Uzbek translation.",
+    "`synonyms`: up to three German synonyms that fit this level. `antonyms`: up to three German antonyms; use an empty array when the word has no real opposite.",
+    "`pos` is the part of speech in German (Nomen, Verb, Adjektiv, Adverb, Präposition, Konjunktion, Pronomen, Ausdruck, Sonstiges). `article` is der, die or das for nouns and an empty string otherwise.",
+    "`note` is empty unless there is an important usage hint, then one short Uzbek sentence.",
+    "Every German form must be correct standard German. If you are not sure, leave the field out rather than guess.",
+  ].join("\n");
+}
+
+// Blackboard lessons come back as JSON in exactly this shape, so the page can draw them step by step.
 function boardPrompt(level: string): string {
   return [
     "You are AI Lehrer, the German teacher inside Deutschlify, a German-learning platform for Uzbek speakers.",
@@ -148,6 +190,33 @@ Deno.serve(async (req: Request) => {
 
   try {
     const client = new Anthropic({ apiKey });
+    if (mode === "word") {
+      const response = await client.messages.create({
+        model: MODEL,
+        max_tokens: 1200,
+        system: wordPrompt(level),
+        output_config: { effort: "low", format: { type: "json_schema", schema: WORD_SCHEMA } },
+        messages: [{ role: "user", content: messages[messages.length - 1].content.slice(0, 60) }],
+      });
+      const usage = response.usage;
+      if (response.stop_reason === "refusal") {
+        await log("refused", usage.input_tokens, usage.output_tokens);
+        return json({ error: "not_a_word", remaining: DAILY_LIMIT - used }, 422);
+      }
+      let word: { ok?: unknown; word?: unknown } | null = null;
+      try {
+        word = JSON.parse(response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join(""));
+      } catch {
+        word = null;
+      }
+      if (!word || typeof word.word !== "string") {
+        await log("schema_invalid", usage.input_tokens, usage.output_tokens);
+        return json({ error: "ai_error" }, 502);
+      }
+      await log("ok", usage.input_tokens, usage.output_tokens);
+      if (!word.ok || !word.word.trim()) return json({ error: "not_a_word", remaining: DAILY_LIMIT - used }, 422);
+      return json({ word, remaining: DAILY_LIMIT - used });
+    }
     if (mode === "board") {
       const response = await client.messages.create({
         model: MODEL,
