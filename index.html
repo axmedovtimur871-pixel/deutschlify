@@ -977,6 +977,11 @@ function T(s){
   return r===undefined?s:s.replace(/^(\s*)[\s\S]*?(\s*)$/,(m,a,b)=>a+r+b);
 }
 const tr1=s=>T(s);
+Object.assign(UZ,{'Sign in to use AI Lehrer':'AI Lehrer uchun hisobga kiring','The AI teacher needs an online account so that your daily messages are protected. Your vocabulary and progress stay in this browser.':'AI o‘qituvchi uchun onlayn hisob kerak: shunda kunlik xabarlaringiz himoyalanadi. Lug‘atingiz va natijalaringiz shu brauzerda qoladi.',
+'An account with this email already exists. Log in instead.':'Bu email bilan hisob allaqachon bor. Kirish tugmasini bosing.','Please confirm your email first: open the link we sent you.':'Avval emailingizni tasdiqlang: yuborilgan havolani oching.','Too many attempts. Please wait a few minutes.':'Urinishlar juda ko‘p. Bir necha daqiqa kuting.',
+'We sent a confirmation link to your email. Open it, then log in here.':'Emailingizga tasdiqlash havolasi yuborildi. Uni oching, so‘ng shu yerda kiring.','Could not sign in. Check your connection and try again.':'Kirib bo‘lmadi. Internetni tekshirib, qayta urinib ko‘ring.',
+'You have used all of today’s AI messages. They renew tomorrow.':'Bugungi AI xabarlaringiz tugadi. Ertaga yangilanadi.','The AI service is not set up correctly yet. Please try again later.':'AI xizmati hali to‘g‘ri sozlanmagan. Keyinroq urinib ko‘ring.','The teacher is busy right now. Try again in a moment.':'O‘qituvchi hozir band. Birozdan keyin urinib ko‘ring.'});
+UZP.push([/^Signed in as (.+)$/,'Hisob: $1']);
 UZP.push([/^Hello, (.+)!$/,'Salom, $1!'],[/^Conversation history \((\d+)\)$/,'Suhbatlar tarixi ($1)'],[/^(\d+) exercises · (\w+)$/,'$1 ta mashq · $2'],[/^Heard: “(.*)”$/,'Eshitildi: “$1”'],[/^(\d+)% of the words matched$/,'so‘zlarning $1% mos keldi'],
   [/^(Everyday phrases|Question and answer|Topic-based speaking|Free speaking) · (\w+)$/,(m,a,b)=>UZ[a]+' · '+b]);
 /* ---------- Tabs ---------- */
@@ -1061,10 +1066,49 @@ if('speechSynthesis' in window)speechSynthesis.onvoiceschanged=()=>{};
 const store={get(k,d){try{const v=localStorage.getItem('dl_'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('dl_'+k,JSON.stringify(v))}catch(e){}}};
 
 /* ---------- AI Lehrer ----------
-   API_URL: your backend (POST {message, messages, level, mode} -> {reply}). While it is empty the page says so
-   plainly and only offers what really works without a backend: Uzbek -> German machine translation.
-   Conversations are kept in this browser ('dl_lehrer'). */
-const API_URL='';
+   The teacher runs in a Supabase Edge Function (supabase/functions/ai) that holds the Claude API key.
+   The browser only ever has the publishable key below, which is public by design; calls are made with the
+   signed-in user's own access token, and the function enforces a daily allowance per user.
+   Conversations are kept in this browser ('dl_lehrer'); the server stores no message text. */
+const SB_URL='https://ajrblgdfumbjebdijrhj.supabase.co',SB_KEY='sb_publishable_qEnXQqrmRsCDU1Yv8O8hog_hTUKZSBH';
+const API_URL=SB_URL+'/functions/v1/ai';
+/* Supabase Auth over plain fetch: sign in, sign up, and silent token refresh. Session in 'dl_cloud'. */
+const cloud={
+  get(){return store.get('cloud',null)},
+  set(s){store.set('cloud',s&&s.access_token?{at:s.access_token,rt:s.refresh_token,exp:Date.now()+(s.expires_in||3600)*1000,email:(s.user&&s.user.email)||''}:null)},
+  async call(path,body){
+    const r=await fetch(SB_URL+'/auth/v1/'+path,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY},body:JSON.stringify(body)}),d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.error_code||d.msg||d.error_description||d.message||'auth');return d;
+  },
+  async signIn(email,password){this.set(await this.call('token?grant_type=password',{email,password}))},
+  async signUp(email,password){const d=await this.call('signup',{email,password});if(d.access_token){this.set(d);return true}return false},
+  async token(){
+    const s=this.get();if(!s)return null;if(s.exp-60000>Date.now())return s.at;
+    try{const d=await this.call('token?grant_type=refresh_token',{refresh_token:s.rt});this.set(d);return d.access_token}catch(e){this.set(null);return null}
+  },
+  signOut(){this.set(null)}
+};
+const CLOUD_ERR={invalid_credentials:'The email or password is not correct.',user_already_exists:'An account with this email already exists. Log in instead.',email_exists:'An account with this email already exists. Log in instead.',
+  email_not_confirmed:'Please confirm your email first: open the link we sent you.',weak_password:'Use at least 6 characters.',over_email_send_rate_limit:'Too many attempts. Please wait a few minutes.',over_request_rate_limit:'Too many attempts. Please wait a few minutes.',
+  validation_failed:'That email address is not valid.',email_address_invalid:'That email address is not valid.'};
+function cloudCard(onDone){
+  const u=curUser(),[ei,ew]=fld('Email',u?u.email:''),[pi,pw]=fld('Password',''),msg=h('div',{class:'res','aria-live':'polite'});
+  ei.type='email';ei.autocomplete='email';ei.setAttribute('autocapitalize','off');pi.type='password';pi.autocomplete='current-password';
+  const run=async(up,btn)=>{
+    const email=ei.value.trim().toLowerCase(),pass=pi.value;
+    if(!emailOk(email))return note(msg,'That email address is not valid.',1);if(pass.length<6)return note(msg,'Use at least 6 characters.',1);
+    btn.classList.add('busy');
+    try{
+      if(up){if(!await cloud.signUp(email,pass))return note(msg,'We sent a confirmation link to your email. Open it, then log in here.')}
+      else await cloud.signIn(email,pass);
+      onDone();
+    }catch(e){note(msg,CLOUD_ERR[e.message]||'Could not sign in. Check your connection and try again.',1)}
+    finally{btn.classList.remove('busy')}
+  };
+  const inB=h('button',{class:'b',text:'Log in',onclick:()=>run(false,inB)}),upB=h('button',{class:'b alt',text:'Create account',onclick:()=>run(true,upB)});
+  pi.addEventListener('keydown',e=>{if(e.key==='Enter')run(false,inB)});
+  return h('div',{class:'card',style:'max-width:460px'},h('h3',{text:'Sign in to use AI Lehrer'}),h('p',{class:'tr',style:'margin-top:0',text:'The AI teacher needs an online account so that your daily messages are protected. Your vocabulary and progress stay in this browser.'}),ew,pw,h('div',{class:'row'},inB,upB),msg);
+}
 const LV5=['A1','A2','B1','B2','C1'];
 const lehrerOn=()=>!!API_URL;
 let LH=null;
@@ -1073,8 +1117,11 @@ const lhSave=()=>{if(!LH||!LH.msgs.length)return;const a=lhAll().filter(c=>c.id!
 async function askTeacher(msgs,level,mode){
   const last=msgs[msgs.length-1].x;
   if(API_URL){
-    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:last,messages:msgs.map(m=>({role:m.r==='me'?'user':'assistant',content:m.x})),level,mode})});
-    const d=await r.json();if(!r.ok||typeof d.reply!=='string')throw new Error('api');return d.reply;
+    const tk=await cloud.token();if(!tk)throw new Error('signin');
+    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+tk},body:JSON.stringify({messages:msgs.map(m=>({role:m.r==='me'?'user':'assistant',content:m.x})),level,mode})});
+    const d=await r.json().catch(()=>({}));
+    if(r.status===401){cloud.set(null);throw new Error('signin')}
+    if(!r.ok||typeof d.reply!=='string')throw new Error(d.error||'api');return d.reply;
   }
   const r=await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(last)+'&langpair=uz|de'),d=await r.json(),tx=d.responseData&&d.responseData.translatedText;
   if(!tx||d.quotaFinished||/^MYMEMORY/i.test(tx))throw new Error('mt');
@@ -1083,6 +1130,10 @@ async function askTeacher(msgs,level,mode){
 function vLehrer(seed){
   const root=$('lehrer');if(!root)return;root.innerHTML='';
   const on=lehrerOn(),lvl=store.get('tlevel','A1');
+  if(on&&!cloud.get()){
+    root.append(h('div',{class:'ptitle',style:'margin-top:0'},h('h1',{text:'AI Lehrer'}),h('p',{text:'What shall we practise in German today?'})),cloudCard(()=>vLehrer(seed)));
+    return;
+  }
   if(!LH)LH={id:uid(),t:Date.now(),mode:'free',msgs:[]};
   const chat=h('div',{class:'chat lchat','aria-live':'polite'}),inp=h('textarea',{rows:'1','aria-label':'Message',placeholder:on?'Write in Uzbek or German…':'Write a sentence in Uzbek…'});
   const [ls,lw]=sel2('Level',LV5.map(x=>[x,x]),LV5.includes(lvl)?lvl:'A1');ls.onchange=()=>store.set('tlevel',ls.value);lw.className='fld lv-pick';
@@ -1093,13 +1144,15 @@ function vLehrer(seed){
     start.hidden=true;LH.msgs.push({r:'me',x:text});bubble(text,'me');inp.value='';
     const w=h('div',{class:'msg bot'},h('span',{class:'skel',style:'width:140px'}),h('span',{class:'skel',style:'width:90px'}));chat.append(w);chat.scrollTop=1e9;
     try{const a=await askTeacher(LH.msgs,ls.value,LH.mode);LH.msgs.push({r:'bot',x:a});w.innerHTML='';w.style.whiteSpace='pre-line';w.textContent=a;lhSave()}
-    catch(e){LH.msgs.pop();w.innerHTML='';w.classList.add('err');w.append(h('span',{text:on?'The teacher did not answer. Check your connection and try again.':'Could not translate. Check your connection and try again.'}),h('div',{},h('button',{class:'b alt',style:'margin-top:8px',text:'Try again',onclick:()=>{w.remove();chat.lastChild&&chat.lastChild.remove();send(text)}})))}
+    catch(e){LH.msgs.pop();if(e.message==='signin'){busy=false;return vLehrer(text)}
+      const why={daily_limit_reached:'You have used all of today’s AI messages. They renew tomorrow.',ai_not_configured:'The AI service is not set up correctly yet. Please try again later.',ai_busy:'The teacher is busy right now. Try again in a moment.'}[e.message];
+      w.innerHTML='';w.classList.add('err');w.append(h('span',{text:why||(on?'The teacher did not answer. Check your connection and try again.':'Could not translate. Check your connection and try again.')}),h('div',{},h('button',{class:'b alt',style:'margin-top:8px',text:'Try again',onclick:()=>{w.remove();chat.lastChild&&chat.lastChild.remove();send(text)}})))}
     finally{busy=false;sendB.classList.remove('busy');chat.scrollTop=1e9}
   }
   const sendB=h('button',{class:'b',text:'Send',onclick:()=>send(inp.value)});
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(inp.value)}});
   const modes=[['free','Free conversation','Talk in German about everyday topics.','gold','Let’s talk in German.'],['grammar','Grammar','Rules explained simply, with examples.','green','Explain a grammar topic to me: '],['check','Check my text','See the mistakes in sentences you wrote.','blue','Check this text and explain my mistakes: ']];
-  const start=h('div',{class:'pcs three'},...modes.map(([id,t,d,c,p])=>h('button',{class:'pc sm '+c,...(on?{}:{disabled:''}),onclick:()=>{LH.mode=id;if(id==='free')send(T(p));else{inp.value=T(p);inp.focus()}}},h('b',{text:t}),h('span',{text:d}),on?null:h('span',{class:'chip soon',text:'Needs AI'}))));
+  const start=h('div',{class:'pcs three'},...modes.map(([id,t,d,c,p])=>h('button',{class:'pc sm '+c,...(on?{}:{disabled:''}),onclick:()=>{LH.mode=id;if(id==='free')send(T(p));else{inp.value=T(p)+' ';inp.focus()}}},h('b',{text:t}),h('span',{text:d}),on?null:h('span',{class:'chip soon',text:'Needs AI'}))));
   start.hidden=LH.msgs.length>0;
   LH.msgs.forEach(m=>bubble(m.x,m.r));
   const quick=['Explain my mistakes.','Explain it more simply.','Give me another example.','Talk with me in German.'].map(t=>h('button',{class:'chip2',text:t,...(on?{}:{disabled:''}),onclick:()=>send(T(t))}));
@@ -1109,10 +1162,11 @@ function vLehrer(seed){
   root.append(
     h('div',{class:'ptitle row',style:'justify-content:space-between;align-items:flex-end;margin-top:0'},h('div',{},h('h1',{text:'AI Lehrer'}),h('p',{text:'What shall we practise in German today?'})),
       h('div',{class:'row',style:'margin:0'},lw,h('button',{class:'b alt',text:'New conversation',onclick:()=>{LH=null;vLehrer()}}))),
+    on&&cloud.get()?h('p',{class:'tr',style:'margin:-6px 0 14px',text:'Signed in as '+cloud.get().email}):null,
     on?null:h('div',{class:'card remind'},h('div',{},h('b',{text:'AI Lehrer is not connected yet.'}),h('div',{class:'tr',style:'margin-top:4px',text:'Conversation, grammar help and corrections need the AI service. For now this page translates Uzbek sentences into German (machine translation).'}))),
     start,h('div',{class:'card lbox'},chat,h('div',{class:'chips'},...quick),h('div',{class:'row lin'},inp,sendB)),hist);
   if(!LH.msgs.length)bubble(T(on?'Hallo! Ask me anything about German, or choose how you want to practise.':'Hallo! Write a sentence in Uzbek and I will give you the German.'),'bot');
-  if(seed){inp.value=seed;inp.focus()}
+  if(seed){LH.mode='check';inp.value=seed;inp.focus()}
 }
 
 /* ---------- AI Sprecher ----------
@@ -3028,7 +3082,7 @@ window.nav=function(key,arg){
   else if(key==='import')vImport();
   else if(key==='login'||key==='register')vAuth(key,arg);
   else if(key==='admin'){location.hash='#admin';chkAdmin()}
-  else if(key==='logout'){store.set('session',null);if(location.hash==='#admin')location.hash='';renderAuth();openPage('home');toast('Signed out')}
+  else if(key==='logout'){store.set('session',null);cloud.signOut();if(location.hash==='#admin')location.hash='';renderAuth();openPage('home');toast('Signed out')}
   else{openPage('p-profil');renderProfile(key)}
   shellSync();
 };
