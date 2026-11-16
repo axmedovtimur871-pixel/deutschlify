@@ -1,0 +1,155 @@
+{
+  "register_version": 1,
+  "retrieved": "2026-11-13",
+  "documents": [
+    {
+      "id": "a1_page",
+      "profile": "telc_deutsch_a1_start_deutsch_1",
+      "type": "profile_page",
+      "title": "Start German 1 / telc German A1 (official profile page)",
+      "url": "https://www.telc.net/en/language-examinations/certificate-exams/german/start-german1-telc-german-a1/",
+      "edition": null,
+      "sha256": null,
+      "retrieved": "2026-11-13",
+      "license_notes": "Copyright telc gGmbH. Used as a reference only; not stored in this repository and not redistributed."
+    },
+    {
+      "id": "a1_uebungstest",
+      "profile": "telc_deutsch_a1_start_deutsch_1",
+      "type": "uebungstest",
+      "title": "telc Deutsch A1 (Start Deutsch 1) Übungstest 1",
+      "url": "https://www.telc.net/fileadmin/user_upload/mock_exams/Deutsch/telc_deutsch_a1.zip",
+      "file": "telc_deutsch_a1_uebungstest_1.pdf",
+      "edition": "10. Auflage 2017",
+      "pages": 44,
+      "sha256": "ca6d3efbc29c68a786a91f37920aa2951cb63d833c7f2f2350716bc3c90290e9",
+      "retrieved": "2026-11-13",
+      "license_notes": "Copyright telc gGmbH. Used as a reference only; not stored in this repository and not redistributed."
+    },
+    {
+      "id": "a2_page",
+      "profile": "telc_deutsch_a2_start_deutsch_2",
+      "type": "profile_page",
+      "title": "Start Deutsch 2 / telc Deutsch A2 (official profile page)",
+      "url": "https://www.telc.net/en/language-examinations/certificate-exams/german/start-german-2-telc-german-a2/",
+      "edition": null,
+      "sha256": null,
+      "retrieved": "2026-11-13",
+      "license_notes": "Copyright telc gGmbH. Used as a reference only; not stored in this repository and not redistributed."
+    },
+    {
+      "id": "a2_uebungstest",
+      "profile": "telc_deutsch_a2_start_deutsch_2",
+      "type": "uebungstest",
+      "title": "telc Deutsch A2 (Start Deutsch 2) Übungstest 1",
+      "url": "https://www.telc.net/fileadmin/user_upload/mock_exams/Deutsch/telc_deutsch_a2_01.zip",
+      "file": "telc_deutsch_a2_uebungstest_1-1_20241212_5090-B00-010107.pdf",
+      "edition": "10. Auflage 2024",
+      "pages": 48,
+      "sha256": "6908cc6ecf532a22fc6df381f9f8814d27749a14c5008635752cc0731a59edeb",
+      "retrieved": "2026-11-13",
+      "license_notes": "Copyright telc gGmbH. Used as a reference only; not stored in this repository and not redistributed."
+    },
+    {
+      "id": "b1_page",
+      "profile": "telc_deutsch_b1_zertifikat_deutsch",
+      "type": "profile_page",
+      "title": "Zertifikat Deutsch / telc Deutsch B1 (official profile page)",
+      "url": "https://www.telc.net/en/language-examinations/certificate-exams/german/certificate-german-telc-german-b1/",
+      "edition": null,
+      "sha256": null,
+      "retrieved": "2026-11-13",
+      "license_notes": "Copyright telc gGmbH. Used as a reference only; not stored in this repository and not redistributed."
+    },
+    {
+      "id": "b1_uebungstest",
+      "profile": "telc_deutsch_b1_zertifikat_deutsch",
+      "type": "uebungstest",
+      "title": "Zertifikat Deutsch / telc Deutsch B1 Übungstest 1",
+      "url": "https://www.telc.net/fileadmin/user_upload/mock_exams/Deutsch/telc_deutsch_b1.zip",
+      "file": "telc_deutsch_b1_zd_uebungstest_1.pdf",
+      "edition": "13. Auflage 2020",
+      "pages": 48,
+      "sha256": "6fd22ffcc25ca75e5718cc9d55bf2369ed716d4071a1058a1fdd301f58fa2b2f",
+      "retrieved": "2026-11-13",
+      "license_notes": "Copyright telc gGmbH. Used as a reference only; not stored in this repository and not redistributed."
+    },
+    {
+      "id": "b2_page",
+      "profile": "telc_deutsch_b2_general",
+      "type": "profile_page",
+      "title": "telc Deutsch B2 (official profile page)",
+      "url": "https://www.telc.net/sprachpruefungen/zertifikatspruefung/deutsch/telc-deutsch-b2/",
+      "edition": null,
+      "sha256": null,
+      "retrieved": "2026-11-13",
+      "license_notes": "Copyright telc gGmbH. Used as a reference only; not stored in this repository and not redistributed."
+    },
+    {
+      "id": "b2_uebungstest",
+      "profile": "telc_deutsch_b2_general",
+      "type": "uebungstest",
+      "title": "telc Deutsch B2 Übungstest 1",
+      "url": "https://www.telc.net/fileadmin/user_upload/mock_exams/Deutsch/telc_deutsch_b2.zip",
+      "file": "telc_deutsch_b2_uebungstest_1.pdf",
+      "edition": "9. Auflage, © 2019",
+      "pages": 56,
+      "sha256": "eb04a597536837e8df6713ebab62f58c82526980130eef7a14b0769179e1df0b",
+      "retrieved": "2026-11-13",
+      "license_notes": "Copyright telc gGmbH. Used as a reference only; not stored in this repository and not redistributed."
+    },
+    {
+      "id": "b2_tipps",
+      "profile": "telc_deutsch_b2_general",
+      "type": "tipps",
+      "title": "telc Deutsch B2 Tipps zur Prüfungsvorbereitung",
+      "url": "https://www.telc.net/fileadmin/user_upload/pdfs/Handbuch_und_Tipps_fuer_Pruefungsvorbereitung/Deutsch_B2_tipps_zur_Pruefungsvorbereitung.pdf",
+      "edition": "6., vollständig überarbeitete Auflage 2020",
+      "pages": 44,
+      "sha256": "cf4e6164411caf8489fc9f1b83bdb4f7bdb1c1ef8785c8dbb482c826fce1fe8c",
+      "retrieved": "2026-11-13",
+      "license_notes": "Copyright telc gGmbH. Used as a reference only; not stored in this repository and not redistributed."
+    },
+    {
+      "id": "b2_handbuch",
+      "profile": "telc_deutsch_b2_general",
+      "type": "handbuch",
+      "title": "Handbuch telc Deutsch B2",
+      "url": "https://www.telc.net/fileadmin/user_upload/pdfs/Handbuch_und_Tipps_fuer_Pruefungsvorbereitung/Deutsch_B2_Handbuch.pdf",
+      "edition": "8. überarbeitete Auflage 2019",
+      "pages": 52,
+      "sha256": "20f83bcf504546ba3dda54f2f09515bb9dfc28c4d3c3669c5ac0b4845edb19ea",
+      "retrieved": "2026-11-13",
+      "license_notes": "Copyright telc gGmbH. Used as a reference only; not stored in this repository and not redistributed."
+    },
+    {
+      "id": "c1_page",
+      "profile": "telc_deutsch_c1_general",
+      "type": "profile_page",
+      "title": "telc Deutsch C1 (official profile page)",
+      "url": "https://www.telc.net/sprachpruefungen/zertifikatspruefung/deutsch/telc-deutsch-c1/",
+      "edition": null,
+      "sha256": null,
+      "retrieved": "2026-11-13",
+      "license_notes": "Copyright telc gGmbH. Used as a reference only; not stored in this repository and not redistributed."
+    },
+    {
+      "id": "c1_uebungstest",
+      "profile": "telc_deutsch_c1_general",
+      "type": "uebungstest",
+      "title": "telc Deutsch C1 Übungstest 1 (Format 2016)",
+      "url": "https://www.telc.net/fileadmin/user_upload/mock_exams/Deutsch/telc_deutsch_c1.zip",
+      "file": "telc_deutsch_c1_uebungstest_1_format_2016.pdf",
+      "edition": "1. Auflage 2016",
+      "pages": 64,
+      "sha256": "2f07e07110f9958a8bce206722306dbd0119180549f71a20445cc72db3bf362b",
+      "retrieved": "2026-11-13",
+      "license_notes": "Copyright telc gGmbH. Used as a reference only; not stored in this repository and not redistributed."
+    }
+  ],
+  "open_items": [
+    "A1, A2, B1 and C1 handbooks and \"Tipps\" documents were not linked from the profile pages that were read; only the Übungstest was used for those levels.",
+    "The blueprint link to the B2 \"Tipps\" PDF returned 404; the working URL (capital P in \"Pruefungsvorbereitung\") comes from the official B2 page.",
+    "Every extraction below was done from the PDF text by software and still needs a human check against the PDF pages."
+  ]
+}

@@ -2,6 +2,8 @@
 //
 // POST /functions/v1/ai   { messages: [{role, content}], level: "A1".."C1", mode: "free"|"grammar"|"check"|"speak" }
 //   -> { reply: string, remaining: number }
+// POST /functions/v1/ai   { mode: "board", level, messages: [{role: "user", content: <topic>}] }
+//   -> { board: { title, steps: [{say, heading, kind, lines: [{de, uz}]}], question: {prompt, answers, explain} }, remaining }
 //
 // - The caller must be signed in with Supabase Auth; the gateway verifies the JWT and this function reads the user from it.
 // - The Claude API key lives only in the function secret ANTHROPIC_API_KEY and never reaches the browser.
@@ -14,7 +16,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const MODEL = Deno.env.get("AI_MODEL") ?? "claude-haiku-5-5";
 const DAILY_LIMIT = Number(Deno.env.get("AI_DAILY_MESSAGES") ?? "30");
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
-const MODES = ["free", "grammar", "check", "speak"];
+const MODES = ["free", "grammar", "check", "speak", "board"];
 const MAX_TURNS = 16; // only the most recent turns are sent, to keep long chats affordable
 const MAX_CHARS = 2000;
 
@@ -32,6 +34,59 @@ const MODE_GUIDE: Record<string, string> = {
   check: "The learner wants their German text checked. Quote each real mistake, give the corrected German, and explain the rule briefly in Uzbek. Then give the full corrected text. If the text is already correct, say so.",
   speak: "The text was produced by speech recognition from the learner speaking German, so ignore punctuation and capitalisation. Comment in Uzbek on word choice and grammar only. You cannot hear the audio, so say nothing about pronunciation.",
 };
+
+// Blackboard lessons come back as JSON in exactly this shape (structured outputs), so the page can draw them step by step.
+const BOARD_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["title", "steps", "question"],
+  properties: {
+    title: { type: "string" },
+    steps: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["say", "heading", "kind", "lines"],
+        properties: {
+          say: { type: "string" },
+          heading: { type: "string" },
+          kind: { type: "string", enum: ["rule", "examples", "compare", "warning"] },
+          lines: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["de", "uz"],
+              properties: { de: { type: "string" }, uz: { type: "string" } },
+            },
+          },
+        },
+      },
+    },
+    question: {
+      type: "object",
+      additionalProperties: false,
+      required: ["prompt", "answers", "explain"],
+      properties: { prompt: { type: "string" }, answers: { type: "array", items: { type: "string" } }, explain: { type: "string" } },
+    },
+  },
+};
+
+function boardPrompt(level: string): string {
+  return [
+    "You are AI Lehrer, the German teacher inside Deutschlify, a German-learning platform for Uzbek speakers.",
+    `The learner's level is ${level} (CEFR). They name a topic and you teach it on a blackboard, step by step.`,
+    "Write a lesson of 5 to 7 steps that builds from the simplest idea to the harder parts.",
+    "For each step: `say` is what you tell the learner in Uzbek (Latin script), one or two friendly sentences. `heading` is a short title for the board block. `lines` are one to four board lines: `de` holds the German form, pattern or example sentence (for instance \"spielen → gespielt\" or \"Ich habe Fußball gespielt.\"), `uz` holds its Uzbek meaning or a very short note, and may be empty.",
+    "`kind` is \"rule\" for a rule or pattern, \"examples\" for example sentences, \"compare\" for two things set side by side, and \"warning\" for a typical mistake learners make.",
+    "Include one \"warning\" step when the topic has a well-known trap.",
+    "Finish with `question`: `prompt` asks in Uzbek for one short German answer that checks the lesson, `answers` lists every spelling you would accept, and `explain` gives the reason in Uzbek.",
+    "Every German form and example must be correct standard German. If you are unsure about a detail, leave it out rather than guess.",
+    "`title` names the topic in Uzbek, with the German term in brackets where there is one.",
+    "If the request is not about learning German, return an empty `steps` array, put a short Uzbek sentence in `title` saying that you teach German topics, and leave the question fields empty.",
+  ].join("\n");
+}
 
 function systemPrompt(level: string, mode: string): string {
   return [
@@ -93,6 +148,32 @@ Deno.serve(async (req: Request) => {
 
   try {
     const client = new Anthropic({ apiKey });
+    if (mode === "board") {
+      const response = await client.messages.create({
+        model: MODEL,
+        max_tokens: 6000,
+        system: boardPrompt(level),
+        output_config: { effort: "medium", format: { type: "json_schema", schema: BOARD_SCHEMA } },
+        messages: [{ role: "user", content: messages[messages.length - 1].content.slice(0, 300) }],
+      });
+      const usage = response.usage;
+      if (response.stop_reason === "refusal") {
+        await log("refused", usage.input_tokens, usage.output_tokens);
+        return json({ error: "refused" }, 422);
+      }
+      let board: { title?: unknown; steps?: unknown; question?: unknown } | null = null;
+      try {
+        board = JSON.parse(response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join(""));
+      } catch {
+        board = null;
+      }
+      if (!board || typeof board.title !== "string" || !Array.isArray(board.steps)) {
+        await log("schema_invalid", usage.input_tokens, usage.output_tokens);
+        return json({ error: "ai_error" }, 502);
+      }
+      await log("ok", usage.input_tokens, usage.output_tokens);
+      return json({ board, remaining: DAILY_LIMIT - used });
+    }
     const response = await client.messages.create({
       model: MODEL,
       max_tokens: 2000,

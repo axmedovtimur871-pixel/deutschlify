@@ -1,0 +1,98 @@
+{
+  "exam_profile": "telc_deutsch_a1_start_deutsch_1",
+  "exam_name": "Start Deutsch 1 / telc Deutsch A1",
+  "level": "A1",
+  "variant": "general",
+  "rubric_version": "2026-11-13.1",
+  "status": "source_verified",
+  "human_review": "pending",
+  "note": "Facts (criteria names, bands, points, rules) are taken from the cited pages. Descriptor wording is summarised, not copied; the official text is copyright telc gGmbH and is not redistributed here.",
+  "parts": [
+    {
+      "part": "schreiben_teil_1",
+      "supported": false,
+      "max_points": null,
+      "reason": "Form-filling items marked right or wrong against an official answer key; not a free-text task, so the examiner does not assess it."
+    },
+    {
+      "part": "schreiben_teil_2",
+      "supported": true,
+      "task": {
+        "text_type": "short message",
+        "content_points_to_cover": 3,
+        "sentences_per_point": "1-2",
+        "word_guidance": "circa 30 Wörter",
+        "time_limit_min": null,
+        "time_note": "Lesen und Schreiben share 45 minutes"
+      },
+      "criteria": [
+        {
+          "code": "erfuellung_der_aufgabenstellung",
+          "title_de": "Erfüllung der Aufgabenstellung",
+          "applied": "per_content_point",
+          "content_points": 3,
+          "levels": [
+            {
+              "points": 3,
+              "summary": "task fully completed and comprehensible"
+            },
+            {
+              "points": 1.5,
+              "summary": "only partly completed because of language and content weaknesses"
+            },
+            {
+              "points": 0,
+              "summary": "not completed and/or incomprehensible"
+            }
+          ],
+          "max_points": 9
+        },
+        {
+          "code": "kommunikative_gestaltung",
+          "title_de": "Kommunikative Gestaltung des Textes",
+          "applied": "once",
+          "levels": [
+            {
+              "points": 1,
+              "summary": "appropriate to the text type"
+            },
+            {
+              "points": 0.5,
+              "summary": "untypical or missing phrases, for example no salutation"
+            },
+            {
+              "points": 0,
+              "summary": "no text-type-specific phrases"
+            }
+          ],
+          "max_points": 1
+        }
+      ],
+      "scoring": {
+        "method": "sum",
+        "max_total": 10
+      },
+      "special_rules": [
+        "Spelling mistakes are, as a rule, not relevant to task completion (stated for Teil 1 in the source)."
+      ]
+    }
+  ],
+  "pass_rule_for_writing_alone": null,
+  "sources": [
+    {
+      "document": "a1_uebungstest",
+      "pdf_page": 36,
+      "supports": "criteria, point values, maximum of 10 points"
+    },
+    {
+      "document": "a1_uebungstest",
+      "pdf_page": 23,
+      "supports": "task format"
+    },
+    {
+      "document": "a1_uebungstest",
+      "pdf_page": 7,
+      "supports": "exam structure, 45 minutes for Lesen und Schreiben, grade bands for the whole exam"
+    }
+  ]
+}
