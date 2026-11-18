@@ -50,7 +50,7 @@ const BOARD_SCHEMA = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["say", "heading", "kind", "lines"],
+        required: ["say", "heading", "kind", "lines", "items"],
         properties: {
           say: { type: "string" },
           heading: { type: "string" },
@@ -62,6 +62,29 @@ const BOARD_SCHEMA = {
               additionalProperties: false,
               required: ["de", "uz"],
               properties: { de: { type: "string" }, uz: { type: "string" } },
+            },
+          },
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["type", "de", "uz", "header", "rows"],
+              properties: {
+                type: { type: "string", enum: ["rule", "example", "table", "conjugation", "arrow", "note"] },
+                de: { type: "string" },
+                uz: { type: "string" },
+                header: { type: "array", items: { type: "string" } },
+                rows: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    required: ["cells"],
+                    properties: { cells: { type: "array", items: { type: "string" } } },
+                  },
+                },
+              },
             },
           },
         },
@@ -174,9 +197,44 @@ function boardPrompt(level: string): string {
     "Include one \"warning\" step when the topic has a well-known trap.",
     "Finish with `question`: `prompt` asks in Uzbek for one short German answer that checks the lesson, `answers` lists every spelling you would accept, and `explain` gives the reason in Uzbek.",
     "Every German form and example must be correct standard German. If you are unsure about a detail, leave it out rather than guess.",
+    "`items` is what is drawn on the board for a step, 0 to 4 items per step. Use `rule` to highlight a grammar rule (de = the rule, uz = its explanation); `example` for a German sentence (de) with its Uzbek translation (uz); `table` for a table with `header` (column titles) and `rows` (each row has `cells`), for instance the articles der, die, das with their nouns; `conjugation` for a verb table (header: ich, du, er/sie/es, wir, ihr, sie/Sie); `arrow` for how parts connect (de = the pattern, for instance \"Subjekt → Verb → Objekt\", uz = what it means); `note` for a short Uzbek remark (uz). Fill only the fields an item uses and leave the others as an empty string or empty array.",
     "`title` names the topic in Uzbek, with the German term in brackets where there is one.",
     "If the request is not about learning German, return an empty `steps` array, put a short Uzbek sentence in `title` saying that you teach German topics, and leave the question fields empty.",
   ].join("\n");
+}
+
+const BOARD_KINDS = ["rule", "examples", "compare", "warning"];
+const ITEM_TYPES = ["rule", "example", "table", "conjugation", "arrow", "note"];
+const clip = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(0, n) : "");
+// Keeps only well-formed visual items; anything malformed is dropped rather than shown half-drawn.
+function cleanItem(x: any) {
+  if (!x || !ITEM_TYPES.includes(x.type)) return null;
+  const rows = (Array.isArray(x.rows) ? x.rows : []).slice(0, 8)
+    .map((r: any) => ({ cells: (Array.isArray(r?.cells) ? r.cells : []).slice(0, 5).map((c: unknown) => clip(c, 80)).filter(Boolean) }))
+    .filter((r: any) => r.cells.length);
+  const header = (Array.isArray(x.header) ? x.header : []).slice(0, 5).map((c: unknown) => clip(c, 80)).filter(Boolean);
+  const out = { type: x.type as string, de: clip(x.de, 200), uz: clip(x.uz, 200), header, rows };
+  if (x.type === "table" || x.type === "conjugation") return rows.length ? out : null;
+  return out.de || out.uz ? out : null;
+}
+function cleanBoard(b: any) {
+  const steps = (Array.isArray(b.steps) ? b.steps : []).slice(0, 8).map((s: any) => ({
+    say: clip(s?.say, 600),
+    heading: clip(s?.heading, 120),
+    kind: BOARD_KINDS.includes(s?.kind) ? s.kind : "rule",
+    lines: (Array.isArray(s?.lines) ? s.lines : []).slice(0, 4).map((l: any) => ({ de: clip(l?.de, 200), uz: clip(l?.uz, 200) })).filter((l: any) => l.de),
+    items: (Array.isArray(s?.items) ? s.items : []).slice(0, 6).map(cleanItem).filter(Boolean),
+  })).filter((s: any) => s.heading && (s.lines.length || s.items.length));
+  const q = b.question || {};
+  return {
+    title: clip(b.title, 200),
+    steps,
+    question: {
+      prompt: clip(q.prompt, 300),
+      answers: (Array.isArray(q.answers) ? q.answers : []).slice(0, 5).map((a: unknown) => clip(a, 120)).filter(Boolean),
+      explain: clip(q.explain, 400),
+    },
+  };
 }
 
 function systemPrompt(level: string, mode: string): string {
@@ -317,7 +375,7 @@ Deno.serve(async (req: Request) => {
         return json({ error: "ai_error" }, 502);
       }
       await log("ok", usage.input_tokens, usage.output_tokens);
-      return json({ board, remaining: DAILY_LIMIT - used });
+      return json({ board: cleanBoard(board), remaining: DAILY_LIMIT - used });
     }
     const response = await client.messages.create({
       model: MODEL,
