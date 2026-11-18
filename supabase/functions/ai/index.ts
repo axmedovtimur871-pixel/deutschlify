@@ -18,8 +18,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const MODEL = Deno.env.get("AI_MODEL") ?? "claude-haiku-5-5";
 const DAILY_LIMIT = Number(Deno.env.get("AI_DAILY_MESSAGES") ?? "30");
-const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
-const MODES = ["free", "grammar", "check", "speak", "board", "word"];
+const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
+const MODES = ["free", "grammar", "check", "speak", "board", "word", "talk"];
 const MAX_TURNS = 16; // only the most recent turns are sent, to keep long chats affordable
 const MAX_CHARS = 2000;
 
@@ -97,6 +97,55 @@ const WORD_SCHEMA = {
   },
 };
 
+// Conversation partners (AI Sprecher). One engine, four personality configurations.
+const PERSONA_IDS = ["strict", "romantic", "funny", "friendly"];
+const LEVEL_GUIDE: Record<string, string> = {
+  A1: "very simple sentences in the present tense, common everyday words, one idea per sentence",
+  A2: "short, clear sentences about everyday life, simple past and perfect",
+  B1: "connected sentences, opinions and experiences, some subordinate clauses with weil and dass",
+  B2: "natural, flowing speech, arguments and abstract topics, varied connectors",
+  C1: "precise, nuanced language, complex structures and idiomatic expressions where natural",
+  C2: "near-native fluency, subtle nuance, idiom and register awareness",
+};
+const PERSONA_GUIDE: Record<string, string> = {
+  strict: "Your personality is QATTIQQO‘L: a strict, demanding examiner-teacher. Use the formal Sie-form, short direct sentences and no small talk. Praise only with one short word such as \"Richtig.\". Insist on complete sentences. Never insult or mock the learner.",
+  romantic: "Your personality is ROMANTIK: warm, poetic and gentle, using the du-form. Describe things with feeling, compliment the learner's effort, and ask about their dreams and feelings. Stay respectful and tasteful; never flirt explicitly and never claim to be a real person.",
+  funny: "Your personality is HAZILKASH: playful and witty, using the du-form. Use light jokes and funny but simple German examples suited to the level. You may use the emotion tag [laughter] at most once per reply. Laugh with the learner about mistakes, never at the learner.",
+  friendly: "Your personality is DO‘STONA: a supportive, friendly conversation partner using the du-form and a relaxed everyday tone. Encourage the learner, ask follow-up questions about their life and celebrate their progress.",
+};
+const TALK_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["reply_de", "corrections", "uz", "tip_uz"],
+  properties: {
+    reply_de: { type: "string" },
+    corrections: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["wrong", "right", "why_uz"],
+        properties: { wrong: { type: "string" }, right: { type: "string" }, why_uz: { type: "string" } },
+      },
+    },
+    uz: { type: "string" },
+    tip_uz: { type: "string" },
+  },
+};
+
+function talkPrompt(level: string, persona: string): string {
+  return [
+    "You are a German conversation partner inside Deutschlify, a German-learning app for Uzbek speakers.",
+    `Speak German at CEFR level ${level}: ${LEVEL_GUIDE[level]}.`,
+    PERSONA_GUIDE[persona],
+    "reply_de is your German reply: at most two short sentences and under 220 characters. End it with a question that invites the learner to answer.",
+    "corrections: list only real grammar, word-order or word-choice mistakes in the learner's LAST message. Quote the wrong part exactly as written, give the corrected version, and explain briefly in Uzbek (Latin script) in why_uz. Do not correct style preferences. If there are no mistakes, return an empty array.",
+    "uz: leave it an empty string unless the learner asks for an Uzbek explanation. When they ask, explain your previous German reply in simple Uzbek (Latin script) and keep reply_de as a short German follow-up.",
+    "tip_uz: one short, encouraging Uzbek tip for improving, or an empty string.",
+    "Stay on learning German and everyday conversation. If asked about something unrelated, say briefly in German that you talk about German, and ask a question.",
+  ].join("\n");
+}
+
 function wordPrompt(level: string): string {
   return [
     "You are a German–Uzbek dictionary inside Deutschlify, a German-learning platform for Uzbek speakers.",
@@ -161,7 +210,7 @@ Deno.serve(async (req: Request) => {
   const userId = auth.user.id;
 
   // Validate the request
-  let body: { messages?: unknown; level?: unknown; mode?: unknown };
+  let body: { messages?: unknown; level?: unknown; mode?: unknown; persona?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -190,6 +239,33 @@ Deno.serve(async (req: Request) => {
 
   try {
     const client = new Anthropic({ apiKey });
+    if (mode === "talk") {
+      const persona = PERSONA_IDS.includes(body.persona as string) ? (body.persona as string) : "friendly";
+      const response = await client.messages.create({
+        model: MODEL,
+        max_tokens: 1200,
+        system: talkPrompt(level, persona),
+        output_config: { effort: "low", format: { type: "json_schema", schema: TALK_SCHEMA } },
+        messages,
+      });
+      const usage = response.usage;
+      if (response.stop_reason === "refusal") {
+        await log("refused", usage.input_tokens, usage.output_tokens);
+        return json({ error: "refused" }, 422);
+      }
+      let turn: { reply_de?: unknown; corrections?: unknown; uz?: unknown; tip_uz?: unknown } | null = null;
+      try {
+        turn = JSON.parse(response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join(""));
+      } catch {
+        turn = null;
+      }
+      if (!turn || typeof turn.reply_de !== "string" || !Array.isArray(turn.corrections)) {
+        await log("schema_invalid", usage.input_tokens, usage.output_tokens);
+        return json({ error: "ai_error" }, 502);
+      }
+      await log("ok", usage.input_tokens, usage.output_tokens);
+      return json({ turn, remaining: DAILY_LIMIT - used });
+    }
     if (mode === "word") {
       const response = await client.messages.create({
         model: MODEL,

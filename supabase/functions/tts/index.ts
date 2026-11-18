@@ -1,10 +1,11 @@
 // Deutschlify · speech backend (Supabase Edge Function)
 //
-// POST /functions/v1/tts   { text: string, lang: "de" | "uz" }   ->   { url: string, cached: boolean }
+// POST /functions/v1/tts   { text: string, lang: "de" | "uz", voice?: "lena" | "jonas" | "madina" ..., speed?: 0.5..2 }
+//   -> { url: string, cached: boolean }
 //
 // Turns a short German phrase or Uzbek explanation into audio with NeuronAI and stores the file in the public
-// "tts" storage bucket under a name derived from the text, so every phrase is paid for once and then served
-// straight from storage. The browser tries the storage URL first and calls this function only on a miss.
+// "tts" storage bucket under a name derived from the text, voice and speed, so every phrase is paid for once and
+// then served straight from storage. The browser tries the storage URL first and calls this function only on a miss.
 //
 // - The NeuronAI key lives only in the function secret NEURONAI_API_KEY.
 // - Open to visitors who are not signed in (listening is part of the free lessons), so it is fenced in:
@@ -16,6 +17,8 @@ const VOICES: Record<string, string> = {
   de: Deno.env.get("TTS_VOICE_DE") ?? "lena",
   uz: Deno.env.get("TTS_VOICE_UZ") ?? "madina",
 };
+// German voices the AI Sprecher personalities may use, and the Uzbek ones the site knows about.
+const VOICE_OK = ["lena", "jonas", "madina", "kamron", "saodat", "kamola", "muhriddin"];
 const MAX_CHARS: Record<string, number> = { de: 300, uz: 500 };
 const DAILY_CHARS = Number(Deno.env.get("TTS_DAILY_CHARS") ?? "100000");
 const API = "https://my.neuronai.uz/api/v1/tts/synthesize";
@@ -28,9 +31,9 @@ const cors = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
-// Must match ttsKey() in index.html: the browser computes the same name to find a cached file.
-async function fileKey(lang: string, voice: string, text: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${lang}|${voice}|${text}`));
+// Must match the browser's cache key: the browser only uses it to remember the URL it already got.
+async function fileKey(lang: string, voice: string, speed: number, text: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${lang}|${voice}|${speed}|${text}`));
   const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
   return `${lang}/${voice}/${hex}.wav`;
 }
@@ -42,7 +45,7 @@ Deno.serve(async (req: Request) => {
   const apiKey = Deno.env.get("NEURONAI_API_KEY");
   if (!apiKey) return json({ error: "tts_not_configured" }, 503);
 
-  let body: { text?: unknown; lang?: unknown };
+  let body: { text?: unknown; lang?: unknown; voice?: unknown; speed?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -53,9 +56,11 @@ Deno.serve(async (req: Request) => {
   const text = typeof body.text === "string" ? body.text.replace(/\s+/g, " ").trim() : "";
   if (!text) return json({ error: "text_required" }, 400);
   if (text.length > MAX_CHARS[lang]) return json({ error: "text_too_long", limit: MAX_CHARS[lang] }, 413);
+  const voice = typeof body.voice === "string" && VOICE_OK.includes(body.voice) ? body.voice : VOICES[lang];
+  const speed =
+    typeof body.speed === "number" && body.speed >= 0.5 && body.speed <= 2 ? Math.round(body.speed * 100) / 100 : 1;
 
-  const voice = VOICES[lang];
-  const key = await fileKey(lang, voice, text);
+  const key = await fileKey(lang, voice, speed, text);
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
     auth: { persistSession: false },
   });
@@ -77,7 +82,7 @@ Deno.serve(async (req: Request) => {
     const res = await fetch(API, {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": key.slice(-80) },
-      body: JSON.stringify({ text, voice_id: voice, language: lang, quality: "standard" }),
+      body: JSON.stringify({ text, voice_id: voice, language: lang, quality: "standard", speed }),
     });
     if (res.status === 401 || res.status === 403) return json({ error: "tts_not_configured" }, 503);
     if (res.status === 402) return json({ error: "tts_balance_empty" }, 503);
