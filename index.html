@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Deutschlify – Nemis tilini o‘rganish endi osonroq</title>
-<meta name="description" content="Deutschlify is a personal German learning space built around your own vocabulary: flashcards, spaced repetition, tests and honest statistics.">
+<title>DEUTSCH KOMPASS – Nemis tilini o‘rganish endi osonroq</title>
+<meta name="description" content="DEUTSCH KOMPASS is a personal German learning space built around your own vocabulary: flashcards, spaced repetition, tests and honest statistics.">
 <meta name="theme-color" content="#101115">
-<meta property="og:title" content="Deutschlify – Learn German. Your Way.">
+<meta property="og:title" content="DEUTSCH KOMPASS – Learn German. Your Way.">
 <meta property="og:description" content="An intelligent learning experience designed around your goals, your vocabulary, and your progress.">
 <meta property="og:image" content="hero.jpg">
 <link rel="icon" type="image/png" href="logo%20(1).png">
@@ -15,7 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
 /* =====================================================================
-   Deutschlify design system
+   DEUTSCH KOMPASS design system
    1. Tokens  2. Base  3. Primitives (buttons, fields, cards, feedback)
    4. Shell (top nav, sidebar, app bar, bottom bar)  5. Landing
    6. Dashboard & profile  7. Learning tools  8. Auth  9. Motion
@@ -138,7 +138,7 @@ dialog.modal.closing{animation:modalOut .18s ease both}dialog.modal.closing::bac
 #topnav.scrolled{border-color:var(--line)}
 #topnav .wrap{height:100%;display:flex;align-items:center;gap:8px}
 .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.22rem;letter-spacing:-.03em;text-decoration:none;color:var(--ink);background:none;border:0;padding:0;cursor:pointer}
-.brand b{font-weight:800}.brand b i{font-style:normal;color:var(--gold-ink)}
+.brand b{font-weight:800;white-space:nowrap}.brand b i{font-style:normal;color:var(--gold-ink)}
 .logo{width:30px;height:36px;flex:none}
 .brand .logo{background-color:#fffdf9;border-radius:9px;padding:3px;width:36px;height:40px;background-origin:content-box;box-shadow:var(--sh-1)}
 .tn-links{position:relative;display:flex;gap:2px;margin-left:28px}
@@ -564,7 +564,7 @@ footer.ft{border-top:1px solid var(--line);padding:48px 0 calc(36px + env(safe-a
 .tn-links button,.b,.sb-i,#bar button{white-space:nowrap}
 .tn-links{margin-left:18px}.tn-links button{padding:9px 11px}
 
-/* ---------- v2: dark-first product shell (Deutschlify design guide) ---------- */
+/* ---------- v2: dark-first product shell (DEUTSCH KOMPASS design guide) ---------- */
 button.b,a.b,span.b{background:var(--gold);border-color:var(--gold);color:#15171c}
 span.b{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 18px;border:1.5px solid var(--gold);border-radius:12px;font-weight:600;font-size:.95rem;white-space:nowrap}
 .b.alt{background:transparent;color:var(--ink);border-color:var(--line-2)}
@@ -722,7 +722,7 @@ button.pc:disabled{opacity:.62;cursor:default}
 
 <aside id="side" aria-label="Navigation">
   <div class="sb-head">
-    <button class="brand" data-go="home" aria-label="Deutschlify home"><span class="logo logo-img"></span><b>Deutsch<i>lify</i></b></button>
+    <button class="brand" data-go="home" aria-label="DEUTSCH KOMPASS home"><span class="logo logo-img"></span><b>DEUTSCH <i>KOMPASS</i></b></button>
     <button class="iconb" id="sb-close" aria-label="Close menu"></button>
     <button class="iconb" id="sb-min" aria-label="Collapse sidebar"></button>
   </div>
@@ -733,7 +733,7 @@ button.pc:disabled{opacity:.62;cursor:default}
 
 <header id="appbar">
   <button class="iconb" id="ab-menu" aria-label="Open menu"></button>
-  <button class="brand ab-brand" data-go="home" aria-label="Deutschlify home"><span class="logo logo-img"></span></button>
+  <button class="brand ab-brand" data-go="home" aria-label="DEUTSCH KOMPASS home"><span class="logo logo-img"></span></button>
   <h2 id="ab-title">Home</h2>
   <span class="sp"></span>
   <div id="ab-right" style="display:flex;align-items:center;gap:6px"></div>
@@ -788,7 +788,7 @@ button.pc:disabled{opacity:.62;cursor:default}
   </div>
   <p class="live-note" id="lp-live-note"></p>
 
-  <footer class="ft2"><span>© 2026 Deutschlify</span><span>Lerne Deutsch. Erreiche mehr.</span></footer>
+  <footer class="ft2"><span>© 2026 DEUTSCH KOMPASS</span><span>Lerne Deutsch. Erreiche mehr.</span></footer>
 </div></div>
 
 <!-- ===================== AI LEHRER / AI SPRECHER ===================== -->
@@ -949,7 +949,7 @@ const UZ={
 'An intelligent learning experience designed around your goals, your vocabulary, and your progress.':'Maqsadlaringiz, lug‘atingiz va natijalaringiz asosida qurilgan aqlli o‘rganish tajribasi.',
 'Start Learning':'O‘rganishni boshlash','Explore Features':'Imkoniyatlarni ko‘rish','Runs in your browser':'Brauzerda ishlaydi','Levels A1 to C1':'A1 dan C1 gacha','Your words stay on your device':'So‘zlaringiz qurilmangizda qoladi',
 'Interface preview':'Interfeys namunasi','This week':'Shu hafta','lesson paths':'darajali darslar','question types':'savol turi','ways to practise':'mashq usuli','import from photo or PDF':'rasm yoki PDF’dan import',
-'Why Deutschlify?':'Nega Deutschlify?','Most apps hand you a fixed list. Deutschlify is built around the German you actually meet, and it tells you the truth about how well you know it.':'Ko‘p ilovalar tayyor ro‘yxat beradi. Deutschlify esa siz haqiqatan duch keladigan nemis tili asosida quriladi va uni qanchalik bilishingizni rostini aytadi.',
+'Why DEUTSCH KOMPASS?':'Nega DEUTSCH KOMPASS?','Most apps hand you a fixed list. DEUTSCH KOMPASS is built around the German you actually meet, and it tells you the truth about how well you know it.':'Ko‘p ilovalar tayyor ro‘yxat beradi. DEUTSCH KOMPASS esa siz haqiqatan duch keladigan nemis tili asosida quriladi va uni qanchalik bilishingizni rostini aytadi.',
 'Your vocabulary':'O‘z lug‘atingiz','Build collections from a textbook page, a photo, a PDF or a conversation. You decide what is worth learning.':'Darslik sahifasi, rasm, PDF yoki suhbatdan to‘plam tuzing. Nimani o‘rganishni o‘zingiz hal qilasiz.',
 'Memory-aware review':'Xotiraga mos takrorlash','A spaced-repetition schedule brings each word back shortly before you would forget it.':'Oraliqli takrorlash jadvali har bir so‘zni unutishingizdan sal oldin qaytaradi.',
 'Honest numbers':'Halol raqamlar','Every chart is drawn from your own answers. No inflated streaks and no invented scores.':'Har bir grafik o‘z javoblaringizdan chiziladi. Sun’iy seriyalar ham, o‘ylab topilgan ballar ham yo‘q.',
@@ -960,7 +960,7 @@ const UZ={
 'Import from a photo or PDF':'Rasm yoki PDF’dan import','Text is recognised on your device. Nothing is saved until you confirm it.':'Matn qurilmangizning o‘zida aniqlanadi. Siz tasdiqlamaguningizcha hech narsa saqlanmaydi.',
 'Statuses that mean something':'Ma’noli holatlar','New, Learning, Learned and Difficult are calculated from your answers.':'Yangi, O‘rganilmoqda, O‘rganilgan va Qiyin holatlari javoblaringizdan hisoblanadi.',
 'Open vocabulary':'Lug‘atni ochish','Meaning':'Ma’nosi','Example':'Misol','to understand':'tushunmoq','Example entry · next review in 4 days':'Namuna yozuv · keyingi takrorlash 4 kundan keyin',
-'Personalized Learning':'Shaxsiy o‘rganish','Deutschlify looks at what is due, what you keep getting wrong and what you have not practised, then suggests the next sensible step.':'Deutschlify nimaning muddati kelganini, nimada ko‘p xato qilayotganingizni va nimani mashq qilmaganingizni ko‘rib, keyingi to‘g‘ri qadamni taklif qiladi.',
+'Personalized Learning':'Shaxsiy o‘rganish','DEUTSCH KOMPASS looks at what is due, what you keep getting wrong and what you have not practised, then suggests the next sensible step.':'DEUTSCH KOMPASS nimaning muddati kelganini, nimada ko‘p xato qilayotganingizni va nimani mashq qilmaganingizni ko‘rib, keyingi to‘g‘ri qadamni taklif qiladi.',
 'A daily plan from your weak spots':'Zaif joylaringizdan tuzilgan kunlik reja','Built from due reviews, difficult words, and your article and writing accuracy.':'Muddati kelgan takrorlashlar, qiyin so‘zlar hamda artikl va yozish aniqligingiz asosida tuziladi.',
 'Review due words':'Muddati kelgan so‘zlarni takrorlash','done':'bajarildi','Article drill':'Artikl mashqi','accuracy under 80%':'aniqlik 80% dan past','Short test':'Qisqa test','none this week':'bu hafta yo‘q','Example plan':'Namuna reja',
 'Goals you set yourself':'O‘zingiz qo‘ygan maqsadlar','A daily word goal, a weekly test goal and the level you are working towards.':'Kunlik so‘z maqsadi, haftalik test maqsadi va siz intilayotgan daraja.',
@@ -1037,7 +1037,7 @@ const UZ={
 'Learning goals':'O‘rganish maqsadlari','Manage':'Boshqarish','Theme':'Rejim','Match my device':'Qurilma sozlamasi','Light':'Yorug‘','Dark':'Qorong‘i','Default translation language':'Asosiy tarjima tili','Uzbek':'O‘zbekcha','English':'Inglizcha','Russian':'Ruscha','Interface language':'Interfeys tili',
 'Current password':'Joriy parol','New password':'Yangi parol','Repeat new password':'Yangi parolni takrorlang','Update password':'Parolni yangilash','Your browser does not support secure sign-in here (HTTPS is required).':'Brauzeringiz xavfsiz kirishni qo‘llamaydi (HTTPS kerak).',
 'The new password needs at least 6 characters.':'Yangi parol kamida 6 belgi bo‘lsin.','The new passwords do not match.':'Yangi parollar mos kelmadi.','The current password is not correct.':'Joriy parol noto‘g‘ri.','Password updated.':'Parol yangilandi.',
-'Appearance and language':'Ko‘rinish va til','Reminders':'Eslatmalar','Show a daily reminder on my overview':'Umumiy sahifada kunlik eslatmani ko‘rsatish','The reminder appears inside Deutschlify. No push notifications are sent.':'Eslatma Deutschlify ichida ko‘rinadi. Push xabar yuborilmaydi.',
+'Appearance and language':'Ko‘rinish va til','Reminders':'Eslatmalar','Show a daily reminder on my overview':'Umumiy sahifada kunlik eslatmani ko‘rsatish','The reminder appears inside DEUTSCH KOMPASS. No push notifications are sent.':'Eslatma DEUTSCH KOMPASS ichida ko‘rinadi. Push xabar yuborilmaydi.',
 'Password':'Parol','Your account and learning data are stored in this browser only. They do not sync to other devices yet.':'Akkauntingiz va o‘quv ma’lumotlaringiz faqat shu brauzerda saqlanadi. Ular boshqa qurilmalar bilan hozircha sinxronlanmaydi.','Admin panel':'Admin panel',
 /* auth */
 'Show password':'Parolni ko‘rsatish','Hide password':'Parolni yashirish','Name':'Ism','Your name':'Ismingiz','At least 6 characters':'Kamida 6 belgi','Repeat password':'Parolni takrorlang',
@@ -1069,7 +1069,7 @@ Object.assign(UZ,{
 'Explain my mistakes.':'Xatolarimni tushuntir.','Explain it more simply.':'Soddaroq tushuntir.','Give me another example.':'Yana misol ber.','Talk with me in German.':'Men bilan nemischa suhbatlash.',
 'Your conversations will be saved here, in this browser.':'Suhbatlaringiz shu yerda, shu brauzerda saqlanadi.','The teacher did not answer. Check your connection and try again.':'O‘qituvchi javob bermadi. Internetni tekshirib, qayta urinib ko‘ring.','Try again':'Qayta urinish',
 'Hallo! Ask me anything about German, or choose how you want to practise.':'Hallo! Nemis tili haqida istalgan savolni bering yoki mashq turini tanlang.',
-'Practise speaking German aloud.':'Nemis tilida ovoz chiqarib gapirishni mashq qiling.','This browser cannot recognise speech.':'Bu brauzer nutqni aniqlay olmaydi.','Open Deutschlify in Chrome, Edge or Safari to use the microphone exercises. Listening to the phrases still works here.':'Mikrofon mashqlari uchun Deutschlify’ni Chrome, Edge yoki Safari’da oching. Iboralarni tinglash bu yerda ham ishlaydi.',
+'Practise speaking German aloud.':'Nemis tilida ovoz chiqarib gapirishni mashq qiling.','This browser cannot recognise speech.':'Bu brauzer nutqni aniqlay olmaydi.','Open DEUTSCH KOMPASS in Chrome, Edge or Safari to use the microphone exercises. Listening to the phrases still works here.':'Mikrofon mashqlari uchun DEUTSCH KOMPASS’ni Chrome, Edge yoki Safari’da oching. Iboralarni tinglash bu yerda ham ishlaydi.',
 'Everyday phrases':'Kundalik iboralar','Listen, then repeat the phrase aloud.':'Tinglang, so‘ng iborani ovoz chiqarib takrorlang.','Question and answer':'Savol-javob','Answer simple questions in German.':'Oddiy savollarga nemis tilida javob bering.','Picture description':'Rasmni tasvirlash','Describe what you see in German.':'Ko‘rganingizni nemischa ifodalang.',
 'Topic-based speaking':'Mavzu bo‘yicha gapirish','Speak for a minute about one topic.':'Bitta mavzu haqida bir daqiqa gapiring.','Free speaking':'Erkin gapirish','Say anything in German and read it back.':'Nemischa istalgan narsani ayting va matnini ko‘ring.','No exercises for this level yet':'Bu daraja uchun hali mashq yo‘q',
 'Recent attempts':'Oxirgi urinishlar','Your spoken attempts will be listed here.':'Gapirib ko‘rgan urinishlaringiz shu yerda ko‘rinadi.','Results show the words your browser recognised. Pronunciation is not scored.':'Natijada brauzeringiz aniqlagan so‘zlar ko‘rsatiladi. Talaffuz ball bilan baholanmaydi.',
@@ -1530,7 +1530,7 @@ function vSprecher(mode){
     const [ls,lw]=sel2('Level',LV5.map(x=>[x,x]),lvl);ls.onchange=()=>{store.set('tlevel',ls.value);vSprecher()};lw.className='fld lv-pick';
     const hist=store.get('spkh',[]);
     put(root,h('div',{class:'ptitle row',style:'justify-content:space-between;align-items:flex-end;margin-top:0'},h('div',{},h('h1',{text:'AI Sprecher'}),h('p',{text:'Practise speaking German aloud.'})),lw),
-      SR?null:h('div',{class:'card remind'},h('div',{},h('b',{text:'This browser cannot recognise speech.'}),h('div',{class:'tr',style:'margin-top:4px',text:'Open Deutschlify in Chrome, Edge or Safari to use the microphone exercises. Listening to the phrases still works here.'}))),
+      SR?null:h('div',{class:'card remind'},h('div',{},h('b',{text:'This browser cannot recognise speech.'}),h('div',{class:'tr',style:'margin-top:4px',text:'Open DEUTSCH KOMPASS in Chrome, Edge or Safari to use the microphone exercises. Listening to the phrases still works here.'}))),
       h('div',{class:'pcs'},...SPK_MODES.map(([id,t,d,c])=>{const n=items(id).length,soon=id==='pic';
         return h('button',{class:'pc '+c,...(soon||!n?{disabled:''}:{}),onclick:()=>vSprecher(id)},h('b',{text:t}),h('span',{text:d}),
           soon?h('span',{class:'chip soon',text:'Coming soon'}):!n?h('span',{class:'chip soon',text:'No exercises for this level yet'}):id==='free'?null:h('small',{text:n+' exercises · '+lvl}))})),
@@ -2992,7 +2992,7 @@ function vAuth(mode,next){
   }
   const side=h('aside',{class:'auth-side','aria-hidden':'true'});
   side.innerHTML='<svg class="rb" viewBox="0 0 900 420"><path d="M-40 250C180 120 380 380 620 230S900 150 960 210" stroke="#f3efe6" opacity=".1"/><path d="M-40 290C180 160 380 420 620 270S900 190 960 250" stroke="#c8372d"/><path d="M-40 330C180 200 380 460 620 310S900 230 960 290" stroke="#f2b705"/></svg>'
-    +'<span class="eyebrow" style="color:#a5a9b3"><span class="flag"><i style="background:#f3efe6"></i><i></i><i></i></span>Deutschlify</span>'
+    +'<span class="eyebrow" style="color:#a5a9b3"><span class="flag"><i style="background:#f3efe6"></i><i></i><i></i></span>DEUTSCH KOMPASS</span>'
     +'<blockquote>Übung macht den Meister.<cite>'+T('Practice makes the master. A German proverb, and the whole idea behind this app.')+'</cite></blockquote><span></span>';
   const form=h('form',{novalidate:'',onsubmit:e=>{e.preventDefault();go()}},reg?N.w:null,E.w,P.w,reg?P2.w:null,btn,msg);
   r.append(h('div',{class:'auth'},side,h('div',{class:'auth-main'},h('div',{class:'auth-box vin'},
@@ -3442,7 +3442,7 @@ D.settings=(u,box)=>{
     }});
   box.append(h('h3',{text:'Settings'}),
     h('div',{class:'card'},h('h3',{text:'Appearance and language'}),h('div',{class:'two'},ulw,thw),lgw,msg),
-    h('div',{class:'card'},h('h3',{text:'Reminders'}),h('label',{class:'chk',for:'rm'},rm,' Show a daily reminder on my overview'),h('p',{class:'tr',text:'The reminder appears inside Deutschlify. No push notifications are sent.'})),
+    h('div',{class:'card'},h('h3',{text:'Reminders'}),h('label',{class:'chk',for:'rm'},rm,' Show a daily reminder on my overview'),h('p',{class:'tr',text:'The reminder appears inside DEUTSCH KOMPASS. No push notifications are sent.'})),
     h('div',{class:'card'},h('h3',{text:'Profile'}),h('div',{class:'row'},h('button',{class:'b alt',text:'Edit profile',onclick:()=>editProfile(u)}),h('button',{class:'b alt',text:'Learning goals',onclick:()=>renderProfile('goals')}))),
     h('div',{class:'card'},h('h3',{text:'Password'}),c0w,h('div',{class:'two'},c1w,c2w),pb,pmsg),
     h('div',{class:'card'},h('h3',{text:'Account'}),h('p',{class:'tr',style:'margin-top:0',text:'Your account and learning data are stored in this browser only. They do not sync to other devices yet.'}),
@@ -3609,8 +3609,8 @@ window.shellSync=function(id){
   if(cur==='p-profil')K=TAB[dtab]||dtab;else if(PK[cur])K=PK[cur];else if(cur==='p-cards'&&!KEEP.has(K))K='vocab';
   body.classList.remove('sb-open');body.dataset.page=cur;
   qa('[data-k]').forEach(b=>{const on=b.dataset.k===K;b.classList.toggle('on',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
-  $('ab-title').textContent=T(TITLE[K]||'Deutschlify');
-  document.title=(K==='home'?'':T(TITLE[K]||'')+' · ')+'Deutschlify'+(K==='home'?' – '+T('Learning German is now easier.'):'');
+  $('ab-title').textContent=T(TITLE[K]||'DEUTSCH KOMPASS');
+  document.title=(K==='home'?'':T(TITLE[K]||'')+' · ')+'DEUTSCH KOMPASS'+(K==='home'?' – '+T('Learning German is now easier.'):'');
   if(cur==='home')live();
   if(cur==='p-lessons')cont($('lessons-continue'));
   moveInd();

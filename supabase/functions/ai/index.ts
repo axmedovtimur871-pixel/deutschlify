@@ -1,4 +1,4 @@
-// Deutschlify · AI Lehrer backend (Supabase Edge Function)
+// DEUTSCH KOMPASS · AI Lehrer backend (Supabase Edge Function)
 //
 // POST /functions/v1/ai   { messages: [{role, content}], level: "A1".."C1", mode: "free"|"grammar"|"check"|"speak" }
 //   -> { reply: string, remaining: number }
@@ -135,7 +135,7 @@ const TALK_SCHEMA = {
 
 function talkPrompt(level: string, persona: string): string {
   return [
-    "You are a German conversation partner inside Deutschlify, a German-learning app for Uzbek speakers.",
+    "You are a German conversation partner inside DEUTSCH KOMPASS, a German-learning app for Uzbek speakers.",
     `Speak German at CEFR level ${level}: ${LEVEL_GUIDE[level]}.`,
     PERSONA_GUIDE[persona],
     "reply_de is your German reply: at most two short sentences and under 220 characters. End it with a question that invites the learner to answer.",
@@ -148,7 +148,7 @@ function talkPrompt(level: string, persona: string): string {
 
 function wordPrompt(level: string): string {
   return [
-    "You are a German–Uzbek dictionary inside Deutschlify, a German-learning platform for Uzbek speakers.",
+    "You are a German–Uzbek dictionary inside DEUTSCH KOMPASS, a German-learning platform for Uzbek speakers.",
     "The user types ONE word. It may be German or Uzbek.",
     "If it is Uzbek, `word` is the German equivalent (correct German spelling, capitalised for nouns) and `uz` is the Uzbek word the user typed.",
     "If it is German, `word` is the German word as written in its dictionary form, and `uz` is its Uzbek translation.",
@@ -166,7 +166,7 @@ function wordPrompt(level: string): string {
 // Blackboard lessons come back as JSON in exactly this shape, so the page can draw them step by step.
 function boardPrompt(level: string): string {
   return [
-    "You are AI Lehrer, the German teacher inside Deutschlify, a German-learning platform for Uzbek speakers.",
+    "You are AI Lehrer, the German teacher inside DEUTSCH KOMPASS, a German-learning platform for Uzbek speakers.",
     `The learner's level is ${level} (CEFR). They name a topic and you teach it on a blackboard, step by step.`,
     "Write a lesson of 5 to 7 steps that builds from the simplest idea to the harder parts.",
     "For each step: `say` is what you tell the learner in Uzbek (Latin script), one or two friendly sentences. `heading` is a short title for the board block. `lines` are one to four board lines: `de` holds the German form, pattern or example sentence (for instance \"spielen → gespielt\" or \"Ich habe Fußball gespielt.\"), `uz` holds its Uzbek meaning or a very short note, and may be empty.",
@@ -181,7 +181,7 @@ function boardPrompt(level: string): string {
 
 function systemPrompt(level: string, mode: string): string {
   return [
-    "You are AI Lehrer, the German teacher inside Deutschlify, a German-learning platform for Uzbek speakers.",
+    "You are AI Lehrer, the German teacher inside DEUTSCH KOMPASS, a German-learning platform for Uzbek speakers.",
     `The learner's level is ${level} (CEFR). Use German vocabulary and sentence length that fit this level.`,
     "Explanations are in Uzbek (Latin script). German examples stay in German.",
     "Be warm and encouraging, never condescending. Keep answers short: usually under 120 words unless the learner asks for more.",

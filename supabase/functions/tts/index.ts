@@ -1,4 +1,4 @@
-// Deutschlify · speech backend (Supabase Edge Function)
+// DEUTSCH KOMPASS · speech backend (Supabase Edge Function)
 //
 // POST /functions/v1/tts   { text: string, lang: "de" | "uz", voice?: "lena" | "jonas" | "madina" ..., speed?: 0.5..2 }
 //   -> { url: string, cached: boolean }
