@@ -2823,7 +2823,7 @@ let EXAM_SAVE_T=null;
 function examMarkDirty(S,id){S.dirty[id]=true;S.saveState='pending';examUi(S);clearTimeout(EXAM_SAVE_T);EXAM_SAVE_T=setTimeout(()=>examSave(S),700)}
 async function examSave(S){
   const ids=Object.keys(S.dirty);if(!ids.length)return;
-  const rows=ids.map(id=>({attempt_id:S.attemptId,user_id:S.uid,item_id:id,answer:{v:S.answers[id]===undefined?null:S.answers[id]},updated_at:new Date().toISOString()}));
+  const rows=ids.map(id=>({attempt_id:S.attemptId,user_id:S.uid,item_id:id,answer:S.answers[id]===undefined?{v:null}:S.answers[id],updated_at:new Date().toISOString()}));
   S.dirty={};
   try{await sbRest('POST','exam_answers?on_conflict=attempt_id,item_id',rows,{Prefer:'resolution=merge-duplicates,return=minimal'});S.saveState='saved'}
   catch(e){ids.forEach(id=>S.dirty[id]=true);S.saveState='error'}
@@ -2832,7 +2832,7 @@ async function examSave(S){
 
 /* ---- the screen ---- */
 function examUi(S){const el=document.getElementById('ex-save');if(!el)return;el.textContent=S.saveState==='saved'?'Gespeichert':S.saveState==='pending'?'Speichern…':'Speichern fehlgeschlagen — erneut versucht';
-  const bar=document.getElementById('ex-prog');if(bar){const all=S.bank.sections.flatMap(s=>s.items);const done=all.filter(it=>S.answers[it.id]!==undefined&&S.answers[it.id]!==null&&S.answers[it.id]!==''&&!(Array.isArray(S.answers[it.id])&&!S.answers[it.id].length)).length;bar.style.width=Math.round(done/all.length*100)+'%'}}
+  const bar=document.getElementById('ex-prog');if(bar){const all=S.bank.sections.flatMap(s=>s.items);const done=all.filter(it=>examAnswered(S,it)).length;bar.style.width=Math.round(done/all.length*100)+'%'}}
 function examGoSection(S,i){
   if(!S.secEnd[i]&&!S.locked[i])S.secEnd[i]=Date.now()+S.bank.sections[i].minutes*60000;
   S.cur=i;S.idx=0;examRender(S);
@@ -2871,7 +2871,7 @@ function examRender(S){
   };
   tick();EXAM_TIMER=setInterval(tick,1000);
 }
-const examAnswered=(S,it)=>{const v=S.answers[it.id];return v!==undefined&&v!==null&&v!==''&&!(Array.isArray(v)&&!v.length)&&!(typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===0)};
+const examAnswered=(S,it)=>{const w=S.answers[it.id];const v=w&&w.v;return v!==undefined&&v!==null&&v!==''&&!(Array.isArray(v)&&!v.length)&&!(typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===0)};
 
 function examItem(S,item,locked){
   const set=(v)=>{S.answers[item.id]=v;examMarkDirty(S,item.id)};
@@ -2964,7 +2964,7 @@ async function examSubmit(S){
     S.bank.sections.forEach(s=>{sections[s.id]={pts:0,max:0,name:s.name}});
     const secOf={};S.bank.sections.forEach(s=>s.items.forEach(it=>secOf[it.id]=s.id));
     for(const it of all){
-      const v=S.answers[it.id]!==undefined?{v:S.answers[it.id]}:undefined;
+      const v=S.answers[it.id]!==undefined?S.answers[it.id]:undefined;
       if(it.type==='write'||it.type==='speak'){
         const text=(v&&v.v)||'';
         items[it.id]={type:it.type,your:text,ai:null};
