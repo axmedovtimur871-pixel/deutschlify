@@ -3287,13 +3287,13 @@ const cloud={
     const r=await fetch(SB_URL+'/auth/v1/'+path,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY},body:JSON.stringify(body)}),d=await r.json().catch(()=>({}));
     if(!r.ok)throw new Error(d.error_code||d.msg||d.error_description||d.message||'auth');return d;
   },
-  async signIn(email,password){this.set(await this.call('token?grant_type=password',{email,password}))},
-  async signUp(email,password){const d=await this.call('signup',{email,password});if(d.access_token){this.set(d);return true}return false},
+  async signIn(email,password){this.set(await this.call('token?grant_type=password',{email,password}));if(typeof loadMe==='function')loadMe()},
+  async signUp(email,password,data){const d=await this.call('signup',{email,password,data:data||{}});if(d.access_token){this.set(d);if(typeof loadMe==='function')loadMe();return true}return false},
   async token(){
     const s=this.get();if(!s)return null;if(s.exp-60000>Date.now())return s.at;
     try{const d=await this.call('token?grant_type=refresh_token',{refresh_token:s.rt});this.set(d);return d.access_token}catch(e){this.set(null);return null}
   },
-  signOut(){this.set(null)}
+  signOut(){this.set(null);store.set('me',null)}
 };
 const CLOUD_ERR={invalid_credentials:'The email or password is not correct.',user_already_exists:'An account with this email already exists. Log in instead.',email_exists:'An account with this email already exists. Log in instead.',
   email_not_confirmed:'Please confirm your email first: open the link we sent you.',weak_password:'Use at least 6 characters.',over_email_send_rate_limit:'Too many attempts. Please wait a few minutes.',over_request_rate_limit:'Too many attempts. Please wait a few minutes.',
@@ -4961,9 +4961,66 @@ async function checkLogin(email,pass,users){
   return (await hashPw(pass||'',u.salt))===u.hash?u:null;
 }
 /*AUTH_END*/
-const getUsers=()=>store.get('users',[]);
-const curUser=()=>{const s=store.get('session',null);if(!s||(s.exp&&s.exp<Date.now()))return null;return getUsers().find(u=>u.id===s.id)||null};
-const isAdmin=()=>{const u=curUser();return !!u&&u.role==='admin'};
+/* ---------- Accounts: Supabase Auth, one account on every device ----------
+   Sign-in, registration and the session all use Supabase Auth (the session is kept in 'cloud' and refreshed
+   silently, so a signed-in user stays signed in). The profile lives in public.profiles (name, level, goal, role);
+   the extra profile fields (first and last name, username, avatar) live in the auth user's metadata.
+   'me' is a local cache of the signed-in user so the page can draw without waiting for the network. */
+const getUsers=()=>{const m=store.get('me',null);return m&&cloud.get()?[m]:[]};
+const curUser=()=>{if(!cloud.get())return null;const m=store.get('me',null);return m&&m.id?m:null};
+const isAdmin=()=>{const u=curUser();return !!u&&(u.role==='admin'||u.role==='super_admin')};
+
+async function authUserInfo(tk){
+  const r=await fetch(SB_URL+'/auth/v1/user',{headers:{apikey:SB_KEY,Authorization:'Bearer '+tk}});
+  if(r.status===401){cloud.set(null);throw new Error('signin')}
+  if(!r.ok)throw new Error('auth');
+  return r.json();
+}
+/* Loads the signed-in user into 'me'. Called after sign-in, sign-up, and once when the page opens. */
+async function loadMe(){
+  if(!cloud.get()){store.set('me',null);return null}
+  try{
+    const tk=await cloud.token();
+    if(!tk){store.set('me',null);return null}
+    const uid=examUid(tk);
+    const [au,rows]=await Promise.all([authUserInfo(tk),sbRest('GET','profiles?id=eq.'+uid+'&select=*')]);
+    let pr=(rows&&rows[0])||null;
+    if(!pr){try{pr=(await sbRest('POST','profiles',{id:uid,email:au.email,full_name:''}))[0]}catch(e){pr={}}}
+    const md=au.user_metadata||{};
+    const full=(pr.full_name||'').trim().split(/\s+/);
+    const first=md.first!==undefined?md.first:(full[0]||'');
+    const last=md.last!==undefined?md.last:full.slice(1).join(' ');
+    const me={id:uid,email:au.email,name:(first+' '+last).trim()||(au.email||'').split('@')[0],role:pr.role||'student',
+      profile:{first,last,username:md.username||'',level:md.level||pr.level||'A1',goal:pr.goal||'',avatar:md.avatar||''}};
+    store.set('me',me);
+    return me;
+  }catch(e){
+    if(e.message==='signin')store.set('me',null);
+    return store.get('me',null);
+  }
+}
+/* Writes a profile change to the account (metadata for the extra fields, profiles for name, level and goal). */
+async function accountSync(p,newEmail){
+  const tk=await cloud.token();if(!tk)return;
+  const uid=examUid(tk);
+  if(newEmail)await fetch(SB_URL+'/auth/v1/user',{method:'PUT',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+tk},body:JSON.stringify({email:newEmail})});
+  await fetch(SB_URL+'/auth/v1/user',{method:'PUT',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+tk},
+    body:JSON.stringify({data:{first:p.first||'',last:p.last||'',username:p.username||'',avatar:p.avatar||'',level:p.level||'A1'}})});
+  const body={full_name:((p.first||'')+' '+(p.last||'')).trim(),goal:(p.goal||'').slice(0,120)};
+  if(['A1','A2','B1','B2','C1'].includes(p.level))body.level=p.level;
+  await sbRest('PATCH','profiles?id=eq.'+uid,body,{Prefer:'return=minimal'});
+}
+async function changePassword(pw){
+  const tk=await cloud.token();if(!tk)throw new Error('signin');
+  const r=await fetch(SB_URL+'/auth/v1/user',{method:'PUT',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+tk},body:JSON.stringify({password:pw})});
+  if(!r.ok)throw new Error('password');
+}
+/* Sends the reset link to the email address (the link opens the site with a recovery session). */
+async function sendPasswordReset(email){await cloud.call('recover',{email})}
+
+/* Restore the signed-in user when the page opens. */
+setTimeout(()=>{if(cloud.get())loadMe().then(()=>{if(typeof renderAuth==='function')renderAuth();if(typeof shellRender==='function')shellRender()})},0);
+
 function renderAuth(){if(typeof shellRender==='function')shellRender()}
 function vAuth(mode,next){
   const r=$('au');r.innerHTML='';vAuth.last=[mode,next];openPage('p-auth');
@@ -4985,36 +5042,38 @@ function vAuth(mode,next){
   const btn=h('button',{class:'b lg',type:'submit',text:reg?'Create account':'Log in'});
   async function go(){
     if(btn.classList.contains('busy'))return;
-    if(typeof crypto==='undefined'||!crypto.subtle)return note(msg,'Your browser does not support secure sign-in here (HTTPS is required).',1);
     if(!E.i.value.trim()||!P.i.value||(reg&&!N.i.value.trim()))return note(msg,reg?'Please fill in your name, email and password.':'Please enter your email and password.',1);
     if(![vN(),vE(),vP(),reg?vP2():true].every(Boolean))return note(msg,'Please check the highlighted fields.',1);
-    const users=getUsers();btn.classList.add('busy');msg.textContent='';msg.className='res';
+    btn.classList.add('busy');msg.textContent='';msg.className='res';
+    const email=E.i.value.trim().toLowerCase(),pass=P.i.value;
     try{
-      let u;
       if(reg){
-        const f={name:N.i.value,email:E.i.value,pass:P.i.value,pass2:P2.i.value},e=validateReg(f,users);if(e)return note(msg,e,1);
-        u=await makeUser(f,users);store.set('users',users.concat(u));store.set('session',{id:u.id,exp:Date.now()+30*864e5});
-      }else{
-        u=await checkLogin(E.i.value,P.i.value,users);if(!u){P.i.classList.add('err');return note(msg,'The email or password is not correct.',1)}
-        store.set('session',{id:u.id,exp:Date.now()+30*864e5});
-      }
-      note(msg,reg?'Account created. Willkommen!':'Welcome back.');
-      renderAuth();toast(reg?'Willkommen, '+u.name.split(' ')[0]+'!':'Welcome back, '+u.name.split(' ')[0]);
+        const parts=N.i.value.trim().split(/\s+/);
+        const ok=await cloud.signUp(email,pass,{first:parts[0]||'',last:parts.slice(1).join(' ')});
+        if(!ok)return note(msg,'We sent a confirmation link to your email. Open it, then log in here.');
+      }else await cloud.signIn(email,pass);
+      await loadMe();
+      renderAuth();
       if(next==='admin'){location.hash='#admin';chkAdmin()}else if(next==='profil'){openPage('p-profil');renderProfile()}else nav('home');
-    }catch(e){note(msg,'Something went wrong. Please try again.',1)}
+    }catch(e){note(msg,CLOUD_ERR[e.message]||'Could not sign in. Check your connection and try again.',1)}
     finally{btn.classList.remove('busy')}
   }
   const side=h('aside',{class:'auth-side','aria-hidden':'true'});
   side.innerHTML='<svg class="rb" viewBox="0 0 900 420"><path d="M-40 250C180 120 380 380 620 230S900 150 960 210" stroke="#f3efe6" opacity=".1"/><path d="M-40 290C180 160 380 420 620 270S900 190 960 250" stroke="#c8372d"/><path d="M-40 330C180 200 380 460 620 310S900 230 960 290" stroke="#f2b705"/></svg>'
     +'<span class="eyebrow" style="color:#a5a9b3"><span class="flag"><i style="background:#f3efe6"></i><i></i><i></i></span>DEUTSCH KOMPASS</span>'
     +'<blockquote>Übung macht den Meister.<cite>'+T('Practice makes the master. A German proverb, and the whole idea behind this app.')+'</cite></blockquote><span></span>';
-  const form=h('form',{novalidate:'',onsubmit:e=>{e.preventDefault();go()}},reg?N.w:null,E.w,P.w,reg?P2.w:null,btn,msg);
+  const forgot=h('button',{class:'linkb',type:'button',text:'Parolni unutdingizmi?',onclick:async()=>{
+    const em=E.i.value.trim().toLowerCase();
+    if(!emailOk(em))return note(msg,'Enter your email first, then press this link.',1);
+    try{await sendPasswordReset(em);note(msg,'If this email has an account, a reset link has been sent to it.')}catch(e){note(msg,'Something went wrong. Please try again.',1)}
+  }});
+  const form=h('form',{novalidate:'',onsubmit:e=>{e.preventDefault();go()}},reg?N.w:null,E.w,P.w,reg?P2.w:null,btn,reg?null:forgot,msg);
   r.append(h('div',{class:'auth'},side,h('div',{class:'auth-main'},h('div',{class:'auth-box vin'},
     h('h1',{},reg?'Create your ':'Welcome ',h('span',{class:'serif',text:reg?'account.':'back.'})),
     h('p',{text:reg?'Set up your personal space for learning German.':'Log in to continue with your vocabulary.'}),
     h('div',{class:'segc'+(reg?' r':''),role:'tablist'},h('button',{type:'button',role:'tab','aria-selected':String(!reg),class:reg?'':'on',text:'Log in',onclick:()=>vAuth('login',next)}),h('button',{type:'button',role:'tab','aria-selected':String(reg),class:reg?'on':'',text:'Register',onclick:()=>vAuth('register',next)})),
     form,
-    h('p',{class:'fine',text:'Accounts are currently stored in this browser only and do not sync between devices. The first account created on a device becomes its admin.'}),
+    h('p',{class:'fine',text:'Your account is stored on the server and works on every device.'}),
     h('button',{class:'linkb',type:'button',text:'← Back to home',onclick:()=>{if(next==='admin'){location.hash='#admin';chkAdmin()}else nav('home')}})))));
   (reg?N:E).i.focus();
 }
@@ -5166,10 +5225,11 @@ function prof(u){
     username:p.username||(u.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_.]/g,'').slice(0,20)||'user'),level:p.level||'A1',goal:p.goal||'',avatar:p.avatar||''};
 }
 function saveProfile(u,patch,email){
-  const users=getUsers(),i=users.findIndex(x=>x.id===u.id);if(i<0)return;
-  const p={...prof(users[i]),...patch};users[i].profile=p;users[i].name=(p.first+' '+p.last).trim()||users[i].name;
-  if(email)users[i].email=email;
-  store.set('users',users);renderAuth();
+  const p={...prof(u),...patch};
+  const me={...(store.get('me',null)||u),profile:p,name:(p.first+' '+p.last).trim()||u.name};
+  if(email&&email!==u.email)me.email=email;
+  store.set('me',me);renderAuth();
+  accountSync(p,email&&email!==u.email?email:'').catch(()=>{});
 }
 async function fileToAvatar(f){
   if(!f||!/^image\//.test(f.type))throw new Error('Please choose an image file.');
@@ -5450,8 +5510,8 @@ D.settings=(u,box)=>{
       const np=c1.value;if(typeof crypto==='undefined'||!crypto.subtle)return note(pmsg,'Your browser does not support secure sign-in here (HTTPS is required).',1);
       if(np.length<6||np.length>100)return note(pmsg,'The new password needs at least 6 characters.',1);if(np!==c2.value)return note(pmsg,'The new passwords do not match.',1);
       pb.classList.add('busy');
-      try{if(!await checkLogin(u.email,c0.value,[u]))return note(pmsg,'The current password is not correct.',1);
-        const users=getUsers(),i=users.findIndex(x=>x.id===u.id),salt=newSalt();users[i].salt=salt;users[i].hash=await hashPw(np,salt);store.set('users',users);
+      try{try{await cloud.signIn(u.email,c0.value)}catch(e){return note(pmsg,'The current password is not correct.',1)}
+        await changePassword(np);
         c0.value=c1.value=c2.value='';note(pmsg,'Password updated.')}catch(e){note(pmsg,'Something went wrong. Please try again.',1)}finally{pb.classList.remove('busy')}
     }});
   box.append(h('h3',{text:'Settings'}),
@@ -5459,7 +5519,7 @@ D.settings=(u,box)=>{
     h('div',{class:'card'},h('h3',{text:'Reminders'}),h('label',{class:'chk',for:'rm'},rm,' Show a daily reminder on my overview'),h('p',{class:'tr',text:'The reminder appears inside DEUTSCH KOMPASS. No push notifications are sent.'})),
     h('div',{class:'card'},h('h3',{text:'Profile'}),h('div',{class:'row'},h('button',{class:'b alt',text:'Edit profile',onclick:()=>editProfile(u)}),h('button',{class:'b alt',text:'Learning goals',onclick:()=>renderProfile('goals')}))),
     h('div',{class:'card'},h('h3',{text:'Password'}),c0w,h('div',{class:'two'},c1w,c2w),pb,pmsg),
-    h('div',{class:'card'},h('h3',{text:'Account'}),h('p',{class:'tr',style:'margin-top:0',text:'Your account and learning data are stored in this browser only. They do not sync to other devices yet.'}),
+    h('div',{class:'card'},h('h3',{text:'Account'}),h('p',{class:'tr',style:'margin-top:0',text:'Your account is stored on the server and works on every device. Vocabulary and test results are still saved in this browser.'}),
       h('div',{class:'row'},isAdmin()?h('button',{class:'b alt',text:'Admin panel',onclick:()=>nav('admin')}):null,h('button',{class:'b alt',text:'Sign out',onclick:()=>nav('logout')}))));
 };
 applyPrefs(true);
