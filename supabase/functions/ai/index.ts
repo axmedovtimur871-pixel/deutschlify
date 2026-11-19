@@ -19,7 +19,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const MODEL = Deno.env.get("AI_MODEL") ?? "claude-haiku-5-5";
 const DAILY_LIMIT = Number(Deno.env.get("AI_DAILY_MESSAGES") ?? "30");
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
-const MODES = ["free", "grammar", "check", "speak", "board", "word", "talk"];
+const MODES = ["free", "grammar", "check", "speak", "board", "word", "talk", "exam_write", "exam_speak"];
 const MAX_TURNS = 16; // only the most recent turns are sent, to keep long chats affordable
 const MAX_CHARS = 2000;
 
@@ -237,6 +237,51 @@ function cleanBoard(b: any) {
   };
 }
 
+// Practice feedback for exam tasks (writing and speaking). It is an estimate, never an official telc score.
+const EXAM_FEEDBACK_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["task", "grammar", "vocabulary", "structure", "coherence", "task_uz", "grammar_uz", "vocabulary_uz", "structure_uz", "coherence_uz", "corrections", "tip_uz"],
+  properties: {
+    task: { type: "integer" },
+    grammar: { type: "integer" },
+    vocabulary: { type: "integer" },
+    structure: { type: "integer" },
+    coherence: { type: "integer" },
+    task_uz: { type: "string" },
+    grammar_uz: { type: "string" },
+    vocabulary_uz: { type: "string" },
+    structure_uz: { type: "string" },
+    coherence_uz: { type: "string" },
+    corrections: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["wrong", "right", "why_uz"],
+        properties: { wrong: { type: "string" }, right: { type: "string" }, why_uz: { type: "string" } },
+      },
+    },
+    tip_uz: { type: "string" },
+  },
+};
+
+function examPrompt(level: string, mode: string, task: string): string {
+  const kind = mode === "exam_speak"
+    ? "The learner's text is a speech transcript from speech recognition. Do not judge pronunciation; judge only the German content."
+    : "The learner wrote this text for an exam writing task.";
+  return [
+    "You are a German exam practice assistant inside DEUTSCH KOMPASS, a German-learning platform for Uzbek speakers.",
+    `Level: CEFR ${level}. ${kind}`,
+    `Task the learner was given: ${task || "(task not provided)"}`,
+    "Score each criterion from 0 to 5 (whole numbers): task (did the text fulfil the task: all points, length, register), grammar, vocabulary (range and precision), structure (sentence building and word order), coherence (linking and logic).",
+    "Write each *_uz comment in simple Uzbek (Latin script), two sentences at most, and name the concrete strength or problem.",
+    "corrections: quote each real mistake exactly as written, give the correct German and explain briefly in Uzbek. Do not correct style preferences. Empty array if there are no mistakes.",
+    "tip_uz: one short, encouraging Uzbek tip for the next practice step.",
+    "State clearly in your comments that this is practice feedback and an estimate, not an official telc examiner's result.",
+  ].join("\n");
+}
+
 function systemPrompt(level: string, mode: string): string {
   return [
     "You are AI Lehrer, the German teacher inside DEUTSCH KOMPASS, a German-learning platform for Uzbek speakers.",
@@ -268,7 +313,7 @@ Deno.serve(async (req: Request) => {
   const userId = auth.user.id;
 
   // Validate the request
-  let body: { messages?: unknown; level?: unknown; mode?: unknown; persona?: unknown };
+  let body: { messages?: unknown; level?: unknown; mode?: unknown; persona?: unknown; task?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -350,6 +395,46 @@ Deno.serve(async (req: Request) => {
       await log("ok", usage.input_tokens, usage.output_tokens);
       if (!word.ok || !word.word.trim()) return json({ error: "not_a_word", remaining: DAILY_LIMIT - used }, 422);
       return json({ word, remaining: DAILY_LIMIT - used });
+    }
+    if (mode === "exam_write" || mode === "exam_speak") {
+      const task = typeof body.task === "string" ? body.task.trim().slice(0, 600) : "";
+      const response = await client.messages.create({
+        model: MODEL,
+        max_tokens: 2000,
+        system: examPrompt(level, mode, task),
+        output_config: { effort: "medium", format: { type: "json_schema", schema: EXAM_FEEDBACK_SCHEMA } },
+        messages: [{ role: "user", content: messages[messages.length - 1].content.slice(0, 4000) }],
+      });
+      const usage = response.usage;
+      if (response.stop_reason === "refusal") {
+        await log("refused", usage.input_tokens, usage.output_tokens);
+        return json({ error: "refused" }, 422);
+      }
+      let fb: any = null;
+      try {
+        fb = JSON.parse(response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join(""));
+      } catch {
+        fb = null;
+      }
+      if (!fb || typeof fb.task !== "number") {
+        await log("schema_invalid", usage.input_tokens, usage.output_tokens);
+        return json({ error: "ai_error" }, 502);
+      }
+      const score = (v: unknown) => Math.min(5, Math.max(0, Math.round(Number(v) || 0)));
+      const feedback = {
+        scores: { task: score(fb.task), grammar: score(fb.grammar), vocabulary: score(fb.vocabulary), structure: score(fb.structure), coherence: score(fb.coherence) },
+        comments: {
+          task: clip(fb.task_uz, 400), grammar: clip(fb.grammar_uz, 400), vocabulary: clip(fb.vocabulary_uz, 400),
+          structure: clip(fb.structure_uz, 400), coherence: clip(fb.coherence_uz, 400),
+        },
+        corrections: (Array.isArray(fb.corrections) ? fb.corrections : []).slice(0, 8).map((c: any) => ({
+          wrong: clip(c?.wrong, 200), right: clip(c?.right, 200), why_uz: clip(c?.why_uz, 300),
+        })).filter((c: any) => c.wrong && c.right),
+        tip_uz: clip(fb.tip_uz, 300),
+        disclaimer: "Amaliy fikr: bu taxminiy baho, rasmiy telc baho emas.",
+      };
+      await log("ok", usage.input_tokens, usage.output_tokens);
+      return json({ feedback, remaining: DAILY_LIMIT - used });
     }
     if (mode === "board") {
       const response = await client.messages.create({
