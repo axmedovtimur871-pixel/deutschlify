@@ -2577,11 +2577,23 @@ function stopSpeech(){TTS_N++;if(TTSA)TTSA.pause();if(typeof window!=='undefined
 /* Phones only let audio start inside a tap: call this from a click so the shared player is allowed to play later. */
 function unlockAudio(){try{if(!TTSA&&typeof Audio!=='undefined'){TTSA=new Audio();TTSA.src=TTS_SILENT;TTSA.play().catch(()=>{})}}catch(e){}}
 const clampSpeed=s=>Math.min(2,Math.max(0.5,Math.round(s*100)/100));
+/* Uzbek (and any text the device cannot say): OpenAI speech through the voice edge function, played in the shared player. */
+async function serverSpeak(text,speed,n,a,onend){
+  const tk=typeof cloud!=='undefined'?await cloud.token():null;
+  if(!tk)throw new Error('signin');
+  const r=await fetch(SB_URL+'/functions/v1/voice',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+tk},body:JSON.stringify({text,lang:'uz'})});
+  if(!r.ok)throw new Error('voice '+r.status);
+  if(n!==TTS_N)return;
+  const url=URL.createObjectURL(await r.blob());
+  a.onended=()=>{if(n===TTS_N&&onend)onend(true)};a.onerror=()=>{if(n===TTS_N&&onend)onend(false)};
+  a.playbackRate=speed;a.src=url;await a.play();
+}
 function speak(text,rate=1,lang='de',onend,opts){
   text=(text||'').replace(/\[[^\]]*\]/g,' ').replace(/\s+/g,' ').trim();
   if(!text){if(onend)onend(false);return}
   const o=opts||{},speed=clampSpeed(typeof o.speed==='number'?o.speed:(typeof rate==='number'?rate:1)),voice=o.voice||'';
-  const local=()=>{if(lang==='de')deviceSpeak(text,speed,onend,o.onword);else if(onend)onend(false)};
+  const viaServer=()=>{const n2=TTS_N,a2=TTSA||(TTSA=new Audio());serverSpeak(text,speed,n2,a2,onend).catch(()=>{if(n2===TTS_N&&onend)onend(false)})};
+  const local=()=>{if(lang==='de')deviceSpeak(text,speed,onend,o.onword);else if(lang==='uz')viaServer();else if(onend)onend(false)};
   if(typeof Audio==='undefined'||typeof fetch==='undefined'||typeof SB_URL==='undefined'||Date.now()<TTS_OFF||text.length>(lang==='uz'?500:300))return local();
   stopSpeech();const n=TTS_N;
   unlockAudio();
