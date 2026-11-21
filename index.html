@@ -1283,6 +1283,7 @@ button.pc:hover:not(:disabled),.hubc:hover{transform:translateY(-3px)}
   .course-line{align-items:flex-start}
   .course-sec{padding:16px}
 }
+.course-frame{width:100%;aspect-ratio:16/9;height:auto;border:0;border-radius:12px;background:#000;margin-top:8px}
 /* ---------- Admin dashboard ---------- */
 .adb{display:grid;gap:16px;margin-bottom:20px}
 .adb-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
@@ -1358,6 +1359,9 @@ button.pc:hover:not(:disabled),.hubc:hover{transform:translateY(-3px)}
 .adb-fb b{overflow-wrap:anywhere}
 .adb-ft{white-space:nowrap}
 @media (max-width:900px){.adb-grid2{grid-template-columns:1fr}}
+.adb-vlist{display:grid;gap:12px;margin-top:10px}
+.adb-vrow{display:grid;gap:8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--bg-2)}
+.adb-chk{display:flex;gap:8px;align-items:center;font-size:.92rem}
 /* ---------- Live voice tutor ---------- */
 .live-card{display:grid;gap:10px;margin-bottom:16px}
 .live-card h3{margin:0}
@@ -4523,10 +4527,11 @@ function crLesson(no){
   lv.append(crBtn('← Darslar ro‘yxati',()=>crHome()),
     crEl('div','card course-card',crEl('small','muted','A1 · Lektion '+no),crEl('h3',null,L.title)));
 
-  const video=crSec('1. Video',
-    crEl('div','course-video',crEl('b',null,'Video hali tayyor emas'),
-      crEl('span','muted','Video skripti tayyor. Video yuklanganda shu yerda chiqadi; hozircha quyidagi matn va mashqlar ishlaydi.')),
+  const vslot=crEl('div','course-video',crEl('b',null,'Video hali tayyor emas'),
+    crEl('span','muted','Video yuklanganda shu yerda chiqadi; hozircha quyidagi matn va mashqlar ishlaydi.'));
+  const video=crSec('1. Video',vslot,
     crEl('details','course-det',crEl('summary',null,'Video skripti'),crEl('p','course-pre',L.video.script)));
+  crLoadVideo(no,vslot);
 
   const vocab=crSec('2. Wortschatz',
     crEl('div','ex-tw',crEl('table','ex-table course-table',
@@ -4610,6 +4615,27 @@ function crLesson(no){
     tBox,sBtn,rBox);
 
   lv.append(video,vocab,gram,exs,dlg,exSec,tSec);
+}
+
+/* Shows the published video of a lesson (YouTube or uploaded file). Keeps the placeholder when there is none. */
+async function crLoadVideo(no,slot){
+  try{
+    const tk=cloud.get()?await cloud.token():null;
+    const r=await fetch(SB_URL+'/rest/v1/lesson_videos?select=title,youtube_id,storage_path&course_code=eq.A1&lesson_no=eq.'+no+'&published=eq.true',
+      {headers:{apikey:SB_KEY,Authorization:'Bearer '+(tk||SB_KEY)}});
+    const rows=await r.json();
+    const v=Array.isArray(rows)&&rows[0];
+    if(!v||(!v.youtube_id&&!v.storage_path))return;
+    slot.textContent='';
+    if(v.title)slot.append(crEl('b',null,v.title));
+    if(v.youtube_id){
+      const f=document.createElement('iframe');f.className='course-frame';f.src='https://www.youtube-nocookie.com/embed/'+v.youtube_id;
+      f.allowFullscreen=true;f.loading='lazy';f.title=v.title||'Video';slot.append(f);
+    }else{
+      const vid=document.createElement('video');vid.className='course-frame';vid.controls=true;vid.preload='metadata';
+      vid.src=SB_URL+'/storage/v1/object/public/lesson-videos/'+v.storage_path;slot.append(vid);
+    }
+  }catch(e){}
 }
 
 /* ---------- Admin dashboard: server-backed statistics, live monitoring, charts and users ----------
@@ -4716,6 +4742,7 @@ function aDbMount(root){
   const usersCard=h('div',{class:'adb-panel'});
   const msg=h('p',{class:'tr adb-msg',text:''});
   wrap.append(head,kpis,h('div',{class:'adb-grid2'},chartCard,sideCard),usersCard,msg);
+  wrap.append(adbVideoCard());
   root.prepend(wrap);
 
   /* users table state (controls persist across refreshes) */
@@ -4847,6 +4874,71 @@ function aDbMount(root){
   if(timer)clearInterval(timer);
   timer=setInterval(tick,ADB_LIVE_MS);
   load();
+}
+
+/* ---------- Admin: lesson videos (YouTube link or uploaded mp4) ----------
+   Rows live in public.lesson_videos (staff write, published rows readable by everyone); files live in the
+   lesson-videos storage bucket. Unpublished videos are visible to staff only. */
+const ADB_VIDEO_MAX=500*1024*1024;
+function adbVideoCard(){
+  const card=h('div',{class:'adb-panel'},h('div',{class:'adb-ph'},h('h4',{text:'Dars videolari (A1)'})),
+    h('p',{class:'tr',text:'YouTube havolasini yozing yoki mp4 faylni yuklang. Nashr qilinmagan video o‘quvchilarga ko‘rinmaydi.'}));
+  const list=h('div',{class:'adb-vlist'},h('small',{class:'tr',text:'Yuklanmoqda…'}));
+  card.append(list);
+  (async()=>{
+    let rows=[];
+    try{rows=await sbRest('GET','lesson_videos?select=*&course_code=eq.A1')||[]}catch(e){list.textContent='';list.append(h('small',{class:'tr',text:adbErr(e)}));return}
+    const byNo={};rows.forEach(r=>{byNo[r.lesson_no]=r});
+    list.textContent='';
+    for(let n=1;n<=10;n++)list.append(adbVideoRow(n,byNo[n]||null));
+  })();
+  return card;
+}
+function adbVideoRow(n,cur){
+  const L=(typeof A1_LESSONS!=='undefined'&&A1_LESSONS.find(x=>x.no===n))||null;
+  const status=h('small',{class:'tr',text:cur?(cur.published?'Nashr qilingan':'Qoralama')+(cur.storage_path?' · fayl':'')+(cur.youtube_id?' · YouTube':''):'Video yo‘q'});
+  const title=h('input',{type:'text',class:'adb-in',placeholder:'Video sarlavhasi',value:cur?cur.title:'','aria-label':'Sarlavha'});
+  const link=h('input',{type:'text',class:'adb-in',placeholder:'YouTube havolasi yoki ID',value:cur&&cur.youtube_id?'https://youtu.be/'+cur.youtube_id:'','aria-label':'YouTube'});
+  const file=h('input',{type:'file',accept:'video/mp4,video/webm',class:'adb-in','aria-label':'Video fayl'});
+  const pub=h('input',{type:'checkbox'});pub.checked=!!(cur&&cur.published);
+  const msg=h('p',{class:'tr adb-msg',text:''});
+  const save=h('button',{class:'b',type:'button',text:'Saqlash'});
+  save.onclick=async()=>{
+    msg.textContent='';
+    const raw=link.value.trim();
+    let yt=null;
+    if(raw){
+      const m=raw.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{11})/)||raw.match(/^([A-Za-z0-9_-]{11})$/);
+      if(!m){msg.textContent='YouTube havolasi noto‘g‘ri.';return}
+      yt=m[1];
+    }
+    let path=cur&&cur.storage_path||null;
+    const f=file.files&&file.files[0];
+    save.disabled=true;
+    try{
+      if(f){
+        if(f.size>ADB_VIDEO_MAX){msg.textContent='Fayl 500 MB dan katta.';save.disabled=false;return}
+        msg.textContent='Fayl yuklanmoqda…';
+        const tk=await cloud.token();
+        const p='A1/lesson-'+n+'.mp4';
+        const r=await fetch(SB_URL+'/storage/v1/object/lesson-videos/'+p,{method:'POST',
+          headers:{apikey:SB_KEY,Authorization:'Bearer '+tk,'x-upsert':'true','Content-Type':f.type||'video/mp4'},body:f});
+        if(!r.ok){msg.textContent='Fayl yuklanmadi (xato '+r.status+'). Hajm va ruxsatni tekshiring.';save.disabled=false;return}
+        path=p;
+      }
+      if(pub.checked&&!yt&&!path){msg.textContent='Nashr qilish uchun YouTube havolasi yoki fayl kerak.';save.disabled=false;return}
+      await sbRest('POST','lesson_videos?on_conflict=course_code,lesson_no',
+        {course_code:'A1',lesson_no:n,title:title.value.trim().slice(0,160),youtube_id:yt,storage_path:path,published:pub.checked,updated_at:new Date().toISOString()},
+        {Prefer:'resolution=merge-duplicates,return=minimal'});
+      toast('Saqlandi');
+      load();
+    }catch(e){msg.textContent=adbErr(e);save.disabled=false}
+  };
+  return h('div',{class:'adb-vrow'},
+    h('div',{class:'adb-ph'},h('b',{text:n+'. '+(L?L.title:'Lektion '+n)}),status),
+    title,link,file,
+    h('label',{class:'adb-chk'},pub,h('span',{text:' Nashr qilish'})),
+    save,msg);
 }
 
 function showLesson(code,i){
