@@ -5419,11 +5419,6 @@ async function stuLevels(){
       h('div',{class:'stu-bar'},h('i',{style:'width:'+stuPct(done,24)+'%'})),
       h('small',{class:'tr',text:!open?'Daraja hozircha yopiq':pub?'Yakunlangan: '+done+' ta dars':'Darslar hali tayyorlanmoqda'}));
     grid.append(card);
-    if(isAdmin()){
-      const bt=h('button',{class:'b alt',type:'button',text:(open?'Yopish · ':'Ochish · ')+code});
-      bt.onclick=async()=>{try{await setLevelLock(code,!open);await stuLevels();toast(code+(open?' yopildi':' ochildi'))}catch(e){toast('Saqlanmadi. Qayta urinib ko‘ring.')}};
-      grid.append(h('div',{class:'stu-admin-lock'},bt));
-    }
   });
   root.append(grid);
 }
