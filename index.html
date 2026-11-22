@@ -6580,6 +6580,18 @@ async function paPayments(body){
     adbKpi('Tasdiqlangan',adbNum(ov.approved),'green'),adbKpi('Rad etilgan',adbNum(ov.rejected),'violet'),
     adbKpi('Faol obunalar',adbNum(ov.active_subs),'teal'),adbKpi('Muddati tugagan',adbNum(ov.expired_subs),'blue'),
     adbKpi('Tasdiqlangan daromad',pmUzs(ov.revenue),'green')));
+  const mailMsg=h('small',{class:'tr',text:''});
+  const sendMail=async(quiet)=>{
+    try{const tk=await cloud.token();
+      const r=await fetch(SB_URL+'/functions/v1/send-email',{method:'POST',headers:{apikey:SB_KEY,Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:'{}'});
+      const d=await r.json().catch(()=>({}));
+      if(r.status===503)mailMsg.textContent='Email xizmati sozlanmagan (RESEND_API_KEY).';
+      else if(!r.ok)mailMsg.textContent='Email yuborilmadi (xato '+r.status+').';
+      else mailMsg.textContent='Email: yuborildi '+(d.sent||0)+', xato '+(d.failed||0)+'.';
+    }catch(e){if(!quiet)mailMsg.textContent='Email yuborilmadi.'}};
+  const mailBtn=paBtn('Emailni yuborish',()=>sendMail(false));
+  body.append(h('div',{class:'lm-row'},mailBtn,mailMsg));
+  sendMail(true);
   const st=h('select',{class:'adb-in'},...Object.keys(PA_STATUS).map(k=>h('option',{value:k,text:PA_STATUS[k]})));st.value=PA.st;
   const pl=h('select',{class:'adb-in'},h('option',{value:'',text:'Barcha tariflar'}),...plans.map(p=>h('option',{value:p.id,text:p.name})));pl.value=PA.plan;
   const from=h('input',{type:'date',class:'adb-in',value:PA.from}),to=h('input',{type:'date',class:'adb-in',value:PA.to});
